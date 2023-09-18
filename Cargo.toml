@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "core"
+]
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+crossterm = "0.27"
