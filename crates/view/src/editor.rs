@@ -8,10 +8,16 @@ pub struct Editor {
     terminal: Terminal,
 }
 
+impl Default for Editor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Editor {
     pub fn new() -> Editor {
         Editor {
-            terminal: Terminal::new(),
+            terminal: Terminal::default(),
         }
     }
 

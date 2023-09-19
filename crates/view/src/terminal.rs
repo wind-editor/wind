@@ -9,6 +9,12 @@ use std::io::Write;
 
 pub struct Terminal {}
 
+impl Default for Terminal {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Terminal {
     pub fn new() -> Terminal {
         Terminal {}

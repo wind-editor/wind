@@ -7,7 +7,7 @@ use clap::Parser;
 fn main() -> Result<()> {
     let _args = Arguments::parse();
 
-    let editor = Editor::new();
+    let editor = Editor::default();
 
     editor.run()?;
 
