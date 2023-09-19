@@ -5,7 +5,7 @@ use crossterm::terminal::*;
 use crossterm::ExecutableCommand;
 
 use std::io;
-use std::io::{Read, Write};
+use std::io::Write;
 
 pub struct Terminal {}
 

@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Parser;
 
 fn main() -> Result<()> {
-    let args = Arguments::parse();
+    let _args = Arguments::parse();
 
     let editor = Editor::new();
 
