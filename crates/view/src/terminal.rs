@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crossterm::event::*;
+use crossterm::cursor::*;
 use crossterm::terminal::*;
 use crossterm::ExecutableCommand;
 
@@ -40,7 +41,11 @@ impl Terminal {
 
     pub fn leave_alternative_screen(&self) -> Result<()> {
         io::stdout().execute(LeaveAlternateScreen)?;
+        Ok(())
+    }
 
+    pub fn move_cursor(&self, x: u16, y: u16) -> Result<()> {
+        io::stdout().execute(MoveTo(x, y))?;
         Ok(())
     }
 

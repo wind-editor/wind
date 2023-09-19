@@ -4,8 +4,11 @@ use anyhow::Result;
 
 use crossterm::event::*;
 
+struct Position(u16, u16);
+
 pub struct Editor {
     terminal: Terminal,
+    position: Position,
 }
 
 impl Default for Editor {
@@ -18,13 +21,19 @@ impl Editor {
     pub fn new() -> Editor {
         Editor {
             terminal: Terminal::default(),
+            position: Position(1, 1),
         }
     }
 
     pub fn run(&self) -> Result<()> {
         self.terminal.enter_alternative_screen()?;
         self.terminal.enable_raw_mode()?;
-        self.handle_events()?;
+        loop {
+            self.terminal.move_cursor(self.position.1, self.position.0)?;
+            self.terminal.clear_all()?;
+            self.handle_events()?;
+            break;
+        }
         self.terminal.disable_raw_mode()?;
         self.terminal.leave_alternative_screen()?;
         Ok(())
