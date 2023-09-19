@@ -1,10 +1,8 @@
 [package]
-name = "wind"
+name = "wind_view"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-clap = { workspace = true }
-
-wind_view = { path = "../crates/view" }
+crossterm = { workspace = true }
