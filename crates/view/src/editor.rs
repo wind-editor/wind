@@ -1,27 +1,28 @@
+use crate::document::*;
 use crate::terminal::*;
 
 use anyhow::Result;
 
 use crossterm::event::*;
 
+use std::path::PathBuf;
+
+#[derive(Default)]
 struct Position(u16, u16);
 
+#[derive(Default)]
 pub struct Editor {
     terminal: Terminal,
+    document: Document,
     position: Position,
     quit: bool,
 }
 
-impl Default for Editor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Editor {
-    pub fn new() -> Editor {
+    pub fn new(file: Option<PathBuf>) -> Editor {
         Editor {
             terminal: Terminal::default(),
+            document: Document::open(file).unwrap_or_default(),
             position: Position(0, 0),
             quit: false,
         }
@@ -32,9 +33,9 @@ impl Editor {
         self.terminal.enable_raw_mode()?;
 
         loop {
+            self.draw_rows()?;
             self.terminal
                 .move_cursor(self.position.1, self.position.0)?;
-            self.terminal.clear_all()?;
             self.handle_events()?;
 
             if self.quit {
@@ -48,7 +49,29 @@ impl Editor {
         Ok(())
     }
 
-    pub fn handle_events(&mut self) -> Result<()> {
+    fn draw_rows(&self) -> Result<()> {
+        for empty_row in 0..self.terminal.get_size()?.1 {
+            self.terminal.clear_current_line()?;
+
+            if let Some(row) = self.document.row(empty_row as usize) {
+                self.draw_row(row)?;
+            } else {
+                println!("~\r");
+            }
+        }
+
+        Ok(())
+    }
+
+    fn draw_row(&self, row: &Row) -> Result<()> {
+        let start = 0;
+        let end = self.terminal.get_size()?.0;
+        println!("{}\r", row.render(start as usize, end as usize));
+
+        Ok(())
+    }
+
+    fn handle_events(&mut self) -> Result<()> {
         let event = self.terminal.wait_event()?;
 
         match event {
@@ -59,7 +82,7 @@ impl Editor {
         Ok(())
     }
 
-    pub fn handle_key(&mut self, key_event: KeyEvent) -> Result<()> {
+    fn handle_key(&mut self, key_event: KeyEvent) -> Result<()> {
         if key_event.modifiers.contains(KeyModifiers::CONTROL) {
             match key_event.code {
                 KeyCode::Char(ch) => match ch {
@@ -85,18 +108,21 @@ impl Editor {
         }
     }
 
-    pub fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<()> {
+    fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<()> {
         match key_code {
-            KeyCode::Up => self.position.0 = self.position.0.saturating_sub(1),
+            KeyCode::Up => {
+                self.position.0 = self.position.0.saturating_sub(1);
+            }
             KeyCode::Down => {
                 if self.position.0 < self.terminal.get_size()?.1 {
-                    self.position.0 = self.position.0.saturating_add(1)
+                    self.position.0 = self.position.0.saturating_add(1);
                 }
             }
             KeyCode::Left => self.position.1 = self.position.1.saturating_sub(1),
             KeyCode::Right => {
-                if self.position.1 < self.terminal.get_size()?.0 {
-                    self.position.1 = self.position.1.saturating_add(1)
+                if self.document.row_length(self.position.0 as usize + 1) > self.position.1 as usize
+                {
+                    self.position.1 = self.position.1.saturating_add(1);
                 }
             }
 

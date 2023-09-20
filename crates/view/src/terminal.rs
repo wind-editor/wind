@@ -8,13 +8,8 @@ use crossterm::ExecutableCommand;
 use std::io;
 use std::io::Write;
 
+#[derive(Default)]
 pub struct Terminal {}
-
-impl Default for Terminal {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl Terminal {
     pub fn new() -> Terminal {
@@ -48,7 +43,12 @@ impl Terminal {
     }
 
     pub fn move_cursor(&self, x: u16, y: u16) -> Result<()> {
-        io::stdout().execute(MoveTo(x.saturating_add(1), y.saturating_add(1)))?;
+        io::stdout().execute(MoveTo(x, y))?;
+        Ok(())
+    }
+
+    pub fn clear_current_line(&self) -> Result<()> {
+        io::stdout().execute(Clear(ClearType::CurrentLine))?;
         Ok(())
     }
 
