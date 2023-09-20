@@ -42,8 +42,8 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn move_cursor(&self, x: u16, y: u16) -> Result<()> {
-        io::stdout().execute(MoveTo(x, y))?;
+    pub fn move_cursor(&self, column: usize, row: usize) -> Result<()> {
+        io::stdout().execute(MoveTo(column as u16, row as u16))?;
         Ok(())
     }
 

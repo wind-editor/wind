@@ -1,4 +1,5 @@
 use crate::document::*;
+use crate::position::*;
 use crate::terminal::*;
 
 use anyhow::Result;
@@ -6,9 +7,6 @@ use anyhow::Result;
 use crossterm::event::*;
 
 use std::path::PathBuf;
-
-#[derive(Default)]
-struct Position(u16, u16);
 
 #[derive(Default)]
 pub struct Editor {
@@ -23,7 +21,7 @@ impl Editor {
         Editor {
             terminal: Terminal::default(),
             document: Document::open(file).unwrap_or_default(),
-            position: Position(0, 0),
+            position: Position::default(),
             quit: false,
         }
     }
@@ -35,7 +33,7 @@ impl Editor {
         loop {
             self.draw_rows()?;
             self.terminal
-                .move_cursor(self.position.1, self.position.0)?;
+                .move_cursor(self.position.column, self.position.row)?;
             self.handle_events()?;
 
             if self.quit {
@@ -111,18 +109,17 @@ impl Editor {
     fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<()> {
         match key_code {
             KeyCode::Up => {
-                self.position.0 = self.position.0.saturating_sub(1);
+                self.position.row = self.position.row.saturating_sub(1);
             }
             KeyCode::Down => {
-                if self.position.0 < self.terminal.get_size()?.1 {
-                    self.position.0 = self.position.0.saturating_add(1);
+                if self.position.row < self.terminal.get_size()?.1 as usize {
+                    self.position.row = self.position.row.saturating_add(1);
                 }
             }
-            KeyCode::Left => self.position.1 = self.position.1.saturating_sub(1),
+            KeyCode::Left => self.position.column = self.position.column.saturating_sub(1),
             KeyCode::Right => {
-                if self.document.row_length(self.position.0 as usize + 1) > self.position.1 as usize
-                {
-                    self.position.1 = self.position.1.saturating_add(1);
+                if self.document.row_length(self.position.row + 1) > self.position.column {
+                    self.position.column = self.position.column.saturating_add(1);
                 }
             }
 
