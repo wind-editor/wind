@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crossterm::event::*;
 use crossterm::cursor::*;
+use crossterm::event::*;
 use crossterm::terminal::*;
 use crossterm::ExecutableCommand;
 
@@ -21,6 +21,10 @@ impl Terminal {
         Terminal {}
     }
 
+    pub fn get_size(&self) -> io::Result<(u16, u16)> {
+        size()
+    }
+
     pub fn wait_event(&self) -> io::Result<Event> {
         read()
     }
@@ -35,7 +39,6 @@ impl Terminal {
 
     pub fn enter_alternative_screen(&self) -> Result<()> {
         io::stdout().execute(EnterAlternateScreen)?;
-
         Ok(())
     }
 
@@ -45,7 +48,7 @@ impl Terminal {
     }
 
     pub fn move_cursor(&self, x: u16, y: u16) -> Result<()> {
-        io::stdout().execute(MoveTo(x, y))?;
+        io::stdout().execute(MoveTo(x.saturating_add(1), y.saturating_add(1)))?;
         Ok(())
     }
 
