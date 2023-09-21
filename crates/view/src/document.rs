@@ -1,13 +1,12 @@
 use anyhow::Result;
 
-use std::cmp;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Row {
-    content: String,
+    pub content: String,
 }
 
 impl From<String> for Row {
@@ -17,13 +16,6 @@ impl From<String> for Row {
 }
 
 impl Row {
-    pub fn render(&self, start: usize, end: usize) -> String {
-        let end = cmp::min(end, self.content.len());
-        let start = cmp::min(start, end);
-
-        self.content.get(start..end).unwrap_or_default().to_string()
-    }
-
     pub fn len(&self) -> usize {
         self.content.len()
     }
@@ -32,7 +24,7 @@ impl Row {
 #[derive(Default)]
 pub struct Document {
     pub name: Option<PathBuf>,
-    rows: Vec<Row>,
+    pub rows: Vec<Row>,
 }
 
 impl Document {

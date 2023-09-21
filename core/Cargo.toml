@@ -6,5 +6,9 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+crossterm = { workspace = true }
+futures-util = { workspace = true }
+ratatui = { workspace = true }
+tokio = { workspace = true }
 
 wind_view = { path = "../crates/view" }
