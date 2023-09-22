@@ -7,6 +7,7 @@ use std::path::PathBuf;
 pub struct Editor {
     pub document: Document,
     pub position: Position,
+    pub scroll_offset: Position,
 }
 
 impl Editor {
@@ -14,6 +15,7 @@ impl Editor {
         Editor {
             document: Document::open(file).unwrap_or_default(),
             position: Position::default(),
+            scroll_offset: Position::default(),
         }
     }
 }

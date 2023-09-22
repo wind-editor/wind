@@ -110,22 +110,51 @@ impl Application {
     }
 
     async fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<bool> {
+        let current_row_length = self.editor.document.row_length(
+            self.editor
+                .position
+                .row
+                .saturating_add(self.editor.scroll_offset.row)
+                + 1,
+        );
+
+        let current_column = self
+            .editor
+            .position
+            .column
+            .saturating_add(self.editor.scroll_offset.column);
+
         match key_code {
             KeyCode::Up => {
+                if self.editor.position.row <= 0 {
+                    self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_sub(1);
+                    self.editor.position.row = self.editor.position.row.saturating_sub(1);
+                }
+
                 self.editor.position.row = self.editor.position.row.saturating_sub(1);
             }
             KeyCode::Down => {
+                if self.editor.position.row.saturating_add(1)
+                    >= self.terminal.size()?.height as usize
+                {
+                    self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_add(1);
+                }
+
                 if self.editor.position.row < self.terminal.size()?.height as usize {
                     self.editor.position.row = self.editor.position.row.saturating_add(1);
                 }
             }
             KeyCode::Left => {
-                self.editor.position.column = self.editor.position.column.saturating_sub(1)
+                self.editor.scroll_offset.column =
+                    self.editor.scroll_offset.column.saturating_sub(1);
+                self.editor.position.column = self.editor.position.column.saturating_sub(1);
             }
             KeyCode::Right => {
-                if self.editor.document.row_length(self.editor.position.row)
-                    > self.editor.position.column
-                {
+                if current_row_length > current_column {
+                    if current_row_length > self.terminal.size()?.width as usize {
+                        self.editor.scroll_offset.column =
+                            self.editor.scroll_offset.column.saturating_add(1);
+                    }
                     self.editor.position.column = self.editor.position.column.saturating_add(1);
                 }
             }
@@ -138,22 +167,25 @@ impl Application {
 
     async fn draw(&mut self) -> Result<()> {
         self.draw_document().await?;
-
-        self.terminal.set_cursor(
-            self.editor.position.column as u16,
-            self.editor.position.row as u16,
-        )?;
-
         Ok(())
     }
 
     async fn draw_document(&mut self) -> Result<()> {
+        let start = self.editor.scroll_offset.column;
+        let end = self
+            .editor
+            .scroll_offset
+            .column
+            .saturating_add(self.terminal.size()?.width as usize);
+
         let rows: Vec<Line> = self
             .editor
             .document
             .rows
             .iter()
-            .map(|r| Line::from(Span::from(r.content.clone())))
+            .enumerate()
+            .filter(|(i, _)| i > &self.editor.scroll_offset.row)
+            .map(|(_, r)| Line::from(Span::from(r.render(start, end))))
             .collect();
 
         let paragraph = Paragraph::new(rows);
@@ -161,8 +193,6 @@ impl Application {
 
         let width = self.terminal.size()?.width;
         let height = self.terminal.size()?.height;
-
-        let y = self.terminal.size()?.y;
 
         self.terminal.draw(|f| {
             f.render_widget(
@@ -172,7 +202,7 @@ impl Application {
                     height,
 
                     x: 0,
-                    y,
+                    y: 0,
                 },
             );
 
