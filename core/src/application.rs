@@ -145,12 +145,12 @@ impl Application {
                     self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_sub(1);
                     self.editor.position.row = self.editor.position.row.saturating_sub(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position_history.column, past_row_length);
+                        std::cmp::min(self.editor.position.history.column, past_row_length);
                 }
 
                 self.editor.position.row = self.editor.position.row.saturating_sub(1);
                 self.editor.position.column =
-                    std::cmp::min(self.editor.position_history.column, past_row_length);
+                    std::cmp::min(self.editor.position.history.column, past_row_length);
             }
 
             KeyCode::Down => {
@@ -159,13 +159,13 @@ impl Application {
                 {
                     self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_add(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position_history.column, next_row_length);
+                        std::cmp::min(self.editor.position.history.column, next_row_length);
                 }
 
                 if self.editor.position.row < self.terminal.size()?.height as usize {
                     self.editor.position.row = self.editor.position.row.saturating_add(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position_history.column, next_row_length);
+                        std::cmp::min(self.editor.position.history.column, next_row_length);
                 }
             }
 
@@ -173,8 +173,8 @@ impl Application {
                 self.editor.scroll_offset.column =
                     self.editor.scroll_offset.column.saturating_sub(1);
                 self.editor.position.column = self.editor.position.column.saturating_sub(1);
-                self.editor.position_history.column =
-                    self.editor.position_history.column.saturating_sub(1);
+                self.editor.position.history.column =
+                    self.editor.position.history.column.saturating_sub(1);
             }
 
             KeyCode::Right => {
@@ -184,8 +184,8 @@ impl Application {
                             self.editor.scroll_offset.column.saturating_add(1);
                     }
                     self.editor.position.column = self.editor.position.column.saturating_add(1);
-                    self.editor.position_history.column =
-                        self.editor.position_history.column.saturating_add(1);
+                    self.editor.position.history.column =
+                        self.editor.position.history.column.saturating_add(1);
                 }
             }
 
