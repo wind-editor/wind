@@ -145,12 +145,12 @@ impl Application {
                     self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_sub(1);
                     self.editor.position.row = self.editor.position.row.saturating_sub(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, past_row_length);
+                        std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), past_row_length.saturating_sub(self.editor.scroll_offset.column));
                 }
 
                 self.editor.position.row = self.editor.position.row.saturating_sub(1);
                 self.editor.position.column =
-                    std::cmp::min(self.editor.position.history.column, past_row_length);
+                        std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), past_row_length.saturating_sub(self.editor.scroll_offset.column));
             }
 
             KeyCode::Down => {
@@ -159,13 +159,13 @@ impl Application {
                 {
                     self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_add(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, next_row_length);
+                        std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), next_row_length.saturating_sub(self.editor.scroll_offset.column));
                 }
 
                 if self.editor.position.row < self.terminal.size()?.height as usize {
                     self.editor.position.row = self.editor.position.row.saturating_add(1);
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, next_row_length);
+                        std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), next_row_length.saturating_sub(self.editor.scroll_offset.column));
                 }
             }
 
