@@ -133,13 +133,12 @@ impl Application {
                 + 2,
         );
 
-        let current_column = self
+        let last_row = self
             .editor
-            .position
-            .column
-            .saturating_add(self.editor.scroll_offset.column);
-
-        let last_row = self.editor.document.rows.len().saturating_sub(1);
+            .document
+            .rows
+            .len()
+            .saturating_sub(1);
 
         match key_code {
             KeyCode::Up => {
@@ -147,6 +146,7 @@ impl Application {
                     self.editor.position.row = self.editor.position.row.saturating_sub(1);
                     self.editor.position.column =
                         std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), past_row_length.saturating_sub(self.editor.scroll_offset.column));
+                    self.editor.position.history.column = self.editor.position.column;
                 }
             }
 
@@ -156,17 +156,19 @@ impl Application {
                         self.editor.scroll_offset.row = self.editor.scroll_offset.row.saturating_add(1);
                         self.editor.position.column =
                             std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), next_row_length.saturating_sub(self.editor.scroll_offset.column));
+                        self.editor.position.history.column = self.editor.position.column;
                     }
 
                     if self.editor.position.row < self.terminal.size()?.height as usize {
                         self.editor.position.row = self.editor.position.row.saturating_add(1);
                         self.editor.position.column =
                             std::cmp::min(self.editor.position.history.column.saturating_sub(self.editor.scroll_offset.column), next_row_length.saturating_sub(self.editor.scroll_offset.column));
+                        self.editor.position.history.column = self.editor.position.column;
                     }
                 }
             }
 
-            KeyCode::Left => {
+          KeyCode::Left => {
                 if self.editor.position.column > 0 || self.editor.position.row > 0 {
                     if self.editor.position.column == 0 && self.editor.position.row > 0 {
                         self.editor.position.row = self.editor.position.row.saturating_sub(1);
@@ -175,9 +177,8 @@ impl Application {
                         self.editor.scroll_offset.column =
                             self.editor.scroll_offset.column.saturating_sub(1);
                         self.editor.position.column = self.editor.position.column.saturating_sub(1);
-                        self.editor.position.history.column =
-                            self.editor.position.history.column.saturating_sub(1);
                     }
+                    self.editor.position.history.column = self.editor.position.column;
                 }
             }
 
@@ -192,9 +193,8 @@ impl Application {
                                 self.editor.scroll_offset.column.saturating_add(1);
                         }
                         self.editor.position.column = self.editor.position.column.saturating_add(1);
-                        self.editor.position.history.column =
-                            self.editor.position.history.column.saturating_add(1);
                     }
+                    self.editor.position.history.column = self.editor.position.column;
                 }
             }
 
