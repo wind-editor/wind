@@ -133,6 +133,12 @@ impl Application {
                 + 2,
         );
 
+        let current_column = self
+            .editor
+            .position
+            .column
+            .saturating_add(self.editor.scroll_offset.column);
+
         let width = self
             .terminal.size()?
             .width as usize;
