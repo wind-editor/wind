@@ -111,54 +111,46 @@ impl Application {
 
     async fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<bool> {
         let current_row_length = self.editor.document.row_length(
-            self.editor
-                .position
-                .row
-                .saturating_add(self.editor.scroll_offset.row)
-                + 1,
-        );
-
-        let past_row_length = self.editor.document.row_length(
-            self.editor
-                .position
-                .row
-                .saturating_add(self.editor.scroll_offset.row),
-        );
-
-        let next_row_length = self.editor.document.row_length(
-            self.editor
-                .position
-                .row
-                .saturating_add(self.editor.scroll_offset.row)
-                + 2,
+            self.editor.position.row
         );
 
         let width = self
             .terminal.size()?
             .width as usize;
 
+        let height = self
+            .terminal.size()?
+            .height as usize;
+
         match key_code {
             KeyCode::Up => {
                 if self.editor.position.row > 0 {
+                    if self.editor.position.row == self.editor.scroll_offset.row {
+                        self.editor.scroll_offset.row =
+                            self.editor.scroll_offset.row.saturating_sub(1);
+                    }
                     self.editor.position.row -= 1;
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, past_row_length);
-                    if self.editor.position.column < width {
+                        std::cmp::min(self.editor.position.history.column, self.editor.document.row_length(self.editor.position.row));
+                    if self.editor.position.column < self.editor.scroll_offset.column {
                         self.editor.scroll_offset.column = 0;
-                    } else {
+                    } else if self.editor.position.column >= self.editor.scroll_offset.column + width {
                         self.editor.scroll_offset.column = self.editor.position.column - width + 1;
                     }
                 }
             }
 
             KeyCode::Down => {
-                if self.editor.position.row.saturating_add(1) <= self.editor.document.rows.len().saturating_sub(1) {
+                if self.editor.position.row.saturating_add(1) < self.editor.document.rows.len() {
+                    if self.editor.position.row == self.editor.scroll_offset.row + height - 1 {
+                        self.editor.scroll_offset.row += 1;
+                    }
                     self.editor.position.row += 1;
                     self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, next_row_length);
-                    if self.editor.position.column < width {
+                        std::cmp::min(self.editor.position.history.column, self.editor.document.row_length(self.editor.position.row));
+                    if self.editor.position.column < self.editor.scroll_offset.column {
                         self.editor.scroll_offset.column = 0;
-                    } else {
+                    } else if self.editor.position.column >= self.editor.scroll_offset.column + width {
                         self.editor.scroll_offset.column = self.editor.position.column - width + 1;
                     }
                 }
@@ -169,14 +161,22 @@ impl Application {
                     self.editor.position.column -= 1;
                     self.editor.position.history.column = self.editor.position.column;
                     if self.editor.position.column < self.editor.scroll_offset.column {
-                        self.editor.scroll_offset.column = self.editor.position.column.saturating_sub(width);
+                        self.editor.scroll_offset.column = self.editor.position.column.saturating_sub(width).max(0);
                     }
-                } else if self.editor.position.row > 0 {
-                    self.editor.position.row -= 1;
-                    self.editor.position.column = past_row_length;
-                    self.editor.position.history.column = self.editor.position.column;
-                    if self.editor.position.column >= self.editor.scroll_offset.column + width {
-                        self.editor.scroll_offset.column = (self.editor.position.column + 1).saturating_sub(width);
+                } else {
+                    if self.editor.position.row == self.editor.scroll_offset.row {
+                        if self.editor.scroll_offset.row > 0 {
+                            self.editor.scroll_offset.row -= 1;
+                        }
+                    }
+                    if self.editor.position.row > 0 {
+                        self.editor.position.row -= 1;
+                        self.editor.position.column = self.editor.document.row_length(self.editor.position.row);
+                        self.editor.position.history.column = self.editor.position.column;
+                        if self.editor.position.column >= self.editor.scroll_offset.column + width {
+                            self.editor.scroll_offset.column =
+                                self.editor.position.column + 1 - width;
+                        }
                     }
                 }
             }
@@ -189,6 +189,11 @@ impl Application {
                         self.editor.scroll_offset.column += 1;
                     }
                 } else {
+                    if self.editor.position.row == self.editor.scroll_offset.row + height - 1 {
+                        if self.editor.scroll_offset.row + height < self.editor.document.rows.len() {
+                            self.editor.scroll_offset.row += 1;
+                        }
+                    }
                     if self.editor.position.row.saturating_add(1) <= self.editor.document.rows.len().saturating_sub(1) {
                         self.editor.position.row += 1;
                         self.editor.position.column = 0;
@@ -223,7 +228,7 @@ impl Application {
             .rows
             .iter()
             .enumerate()
-            .filter(|(i, _)| i > &self.editor.scroll_offset.row)
+            .filter(|(i, _)| i >= &self.editor.scroll_offset.row)
             .map(|(_, r)| Line::from(Span::from(r.render(start, end))))
             .collect();
 
@@ -247,7 +252,7 @@ impl Application {
 
             f.set_cursor(
                 (self.editor.position.column - self.editor.scroll_offset.column) as u16,
-                self.editor.position.row as u16
+                (self.editor.position.row - self.editor.scroll_offset.row) as u16
             );
         })?;
 
