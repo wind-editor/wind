@@ -92,6 +92,7 @@ impl Application {
             match key_event.code {
                 KeyCode::Char(ch) => match ch {
                     'q' => Ok(false),
+
                     _ => Ok(true),
                 },
 
@@ -99,119 +100,176 @@ impl Application {
             }
         } else {
             match key_event.code {
-                KeyCode::Up => self.handle_arrow_key(key_event.code).await,
-                KeyCode::Down => self.handle_arrow_key(key_event.code).await,
-                KeyCode::Left => self.handle_arrow_key(key_event.code).await,
-                KeyCode::Right => self.handle_arrow_key(key_event.code).await,
+                KeyCode::Up => {
+                    self.move_up(1).await?;
+
+                    Ok(true)
+                }
+
+                KeyCode::Down => {
+                    self.move_down(1).await?;
+
+                    Ok(true)
+                }
+
+                KeyCode::Left => {
+                    self.move_left(1).await?;
+
+                    Ok(true)
+                }
+
+                KeyCode::Right => {
+                    self.move_right(1).await?;
+
+                    Ok(true)
+                }
 
                 _ => Ok(true),
             }
         }
     }
 
-    async fn handle_arrow_key(&mut self, key_code: KeyCode) -> Result<bool> {
-        let current_row_length = self.editor.document.row_length(
-            self.editor.position.row
-        );
+    async fn move_up(&mut self, offset: usize) -> Result<()> {
+        let terminal_width = self.terminal.size()?.width as usize;
 
-        let width = self
-            .terminal.size()?
-            .width as usize;
+        if self.editor.position.row > 0 {
+            if self.editor.position.row <= self.editor.scroll_offset.row {
+                self.editor.scroll_offset.row =
+                    self.editor.scroll_offset.row.saturating_sub(offset);
+            }
 
-        let height = self
-            .terminal.size()?
-            .height as usize;
+            self.editor.position.row -= offset;
 
-        match key_code {
-            KeyCode::Up => {
-                if self.editor.position.row > 0 {
-                    if self.editor.position.row == self.editor.scroll_offset.row {
-                        self.editor.scroll_offset.row =
-                            self.editor.scroll_offset.row.saturating_sub(1);
-                    }
-                    self.editor.position.row -= 1;
-                    self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, self.editor.document.row_length(self.editor.position.row));
-                    if self.editor.position.column < self.editor.scroll_offset.column {
-                        self.editor.scroll_offset.column = 0;
-                    } else if self.editor.position.column >= self.editor.scroll_offset.column + width {
-                        self.editor.scroll_offset.column = self.editor.position.column - width + 1;
-                    }
+            self.editor.position.column = std::cmp::min(
+                self.editor.position.history.column,
+                self.editor.document.row_length(self.editor.position.row),
+            );
+
+            if self.editor.position.column < self.editor.scroll_offset.column {
+                self.editor.scroll_offset.column = 0;
+            } else if self.editor.position.column
+                >= self.editor.scroll_offset.column + terminal_width
+            {
+                self.editor.scroll_offset.column = self.editor.position.column - terminal_width + 1;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn move_down(&mut self, offset: usize) -> Result<()> {
+        let terminal_width = self.terminal.size()?.width as usize;
+
+        let terminal_height = self.terminal.size()?.height as usize;
+
+        if self.editor.position.row.saturating_add(offset) < self.editor.document.rows.len() {
+            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset {
+                self.editor.scroll_offset.row += offset;
+            }
+
+            self.editor.position.row += offset;
+
+            self.editor.position.column = std::cmp::min(
+                self.editor.position.history.column,
+                self.editor.document.row_length(self.editor.position.row),
+            );
+
+            if self.editor.position.column < self.editor.scroll_offset.column {
+                self.editor.scroll_offset.column = 0;
+            } else if self.editor.position.column
+                >= self.editor.scroll_offset.column + terminal_width
+            {
+                self.editor.scroll_offset.column = self.editor.position.column - terminal_width + 1;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn move_left(&mut self, offset: usize) -> Result<()> {
+        let terminal_width = self.terminal.size()?.width as usize;
+
+        if self.editor.position.column > 0 {
+            self.editor.position.column = self.editor.position.column.saturating_sub(offset);
+
+            self.editor.position.history.column = self.editor.position.column;
+
+            if self.editor.position.column < self.editor.scroll_offset.column {
+                self.editor.scroll_offset.column = self
+                    .editor
+                    .position
+                    .column
+                    .saturating_sub(terminal_width)
+                    .max(0);
+            }
+        } else {
+            if self.editor.position.row == self.editor.scroll_offset.row {
+                if self.editor.scroll_offset.row > 0 {
+                    self.editor.scroll_offset.row -= 1;
                 }
             }
 
-            KeyCode::Down => {
-                if self.editor.position.row.saturating_add(1) < self.editor.document.rows.len() {
-                    if self.editor.position.row == self.editor.scroll_offset.row + height - 1 {
-                        self.editor.scroll_offset.row += 1;
-                    }
-                    self.editor.position.row += 1;
-                    self.editor.position.column =
-                        std::cmp::min(self.editor.position.history.column, self.editor.document.row_length(self.editor.position.row));
-                    if self.editor.position.column < self.editor.scroll_offset.column {
-                        self.editor.scroll_offset.column = 0;
-                    } else if self.editor.position.column >= self.editor.scroll_offset.column + width {
-                        self.editor.scroll_offset.column = self.editor.position.column - width + 1;
-                    }
+            if self.editor.position.row > 0 {
+                self.editor.position.row -= 1;
+
+                self.editor.position.column =
+                    self.editor.document.row_length(self.editor.position.row);
+
+                self.editor.position.history.column = self.editor.position.column;
+
+                if self.editor.position.column >= self.editor.scroll_offset.column + terminal_width
+                {
+                    self.editor.scroll_offset.column =
+                        self.editor.position.column + terminal_width - offset;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn move_right(&mut self, offset: usize) -> Result<()> {
+        let current_row_length = self.editor.document.row_length(self.editor.position.row);
+
+        let terminal_width = self.terminal.size()?.width as usize;
+
+        let terminal_height = self.terminal.size()?.height as usize;
+
+        if self.editor.position.column < current_row_length {
+            self.editor.position.column += offset;
+
+            self.editor.position.history.column = self.editor.position.column;
+
+            if self.editor.position.column >= self.editor.scroll_offset.column + terminal_width {
+                self.editor.scroll_offset.column += offset;
+            }
+        } else {
+            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset
+            {
+                if self.editor.scroll_offset.row + terminal_height < self.editor.document.rows.len()
+                {
+                    self.editor.scroll_offset.row += 1;
                 }
             }
 
-            KeyCode::Left => {
-                if self.editor.position.column > 0 {
-                    self.editor.position.column -= 1;
-                    self.editor.position.history.column = self.editor.position.column;
-                    if self.editor.position.column < self.editor.scroll_offset.column {
-                        self.editor.scroll_offset.column = self.editor.position.column.saturating_sub(width).max(0);
-                    }
-                } else {
-                    if self.editor.position.row == self.editor.scroll_offset.row {
-                        if self.editor.scroll_offset.row > 0 {
-                            self.editor.scroll_offset.row -= 1;
-                        }
-                    }
-                    if self.editor.position.row > 0 {
-                        self.editor.position.row -= 1;
-                        self.editor.position.column = self.editor.document.row_length(self.editor.position.row);
-                        self.editor.position.history.column = self.editor.position.column;
-                        if self.editor.position.column >= self.editor.scroll_offset.column + width {
-                            self.editor.scroll_offset.column =
-                                self.editor.position.column + 1 - width;
-                        }
-                    }
-                }
+            if self.editor.position.row.saturating_add(1)
+                <= self.editor.document.rows.len().saturating_sub(1)
+            {
+                self.editor.position.row += 1;
+
+                self.editor.position.column = 0;
+
+                self.editor.position.history.column = 0;
+
+                self.editor.scroll_offset.column = 0;
             }
+        }
 
-            KeyCode::Right => {
-                if self.editor.position.column < current_row_length {
-                    self.editor.position.column += 1;
-                    self.editor.position.history.column = self.editor.position.column;
-                    if self.editor.position.column >= self.editor.scroll_offset.column + width {
-                        self.editor.scroll_offset.column += 1;
-                    }
-                } else {
-                    if self.editor.position.row == self.editor.scroll_offset.row + height - 1 {
-                        if self.editor.scroll_offset.row + height < self.editor.document.rows.len() {
-                            self.editor.scroll_offset.row += 1;
-                        }
-                    }
-                    if self.editor.position.row.saturating_add(1) <= self.editor.document.rows.len().saturating_sub(1) {
-                        self.editor.position.row += 1;
-                        self.editor.position.column = 0;
-                        self.editor.position.history.column = 0;
-                        self.editor.scroll_offset.column = 0;
-                    }
-                }
-            }
-
-            _ => (),
-        };
-
-        Ok(true)
+        Ok(())
     }
 
     async fn draw(&mut self) -> Result<()> {
-        self.draw_document().await?;
-        Ok(())
+        self.draw_document().await
     }
 
     async fn draw_document(&mut self) -> Result<()> {
@@ -252,7 +310,7 @@ impl Application {
 
             f.set_cursor(
                 (self.editor.position.column - self.editor.scroll_offset.column) as u16,
-                (self.editor.position.row - self.editor.scroll_offset.row) as u16
+                (self.editor.position.row - self.editor.scroll_offset.row) as u16,
             );
         })?;
 
