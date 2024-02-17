@@ -4,6 +4,8 @@ members = [
     "crates/*"
 ]
 
+resolver = "2"
+
 [workspace.dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

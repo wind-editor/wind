@@ -1,5 +1,5 @@
-use wind::application::Application;
-use wind::cli::Arguments;
+use wind_core::application::Application;
+use wind_core::cli::Arguments;
 
 use anyhow::Result;
 use clap::Parser;
