@@ -1,4 +1,5 @@
-use crate::cli::Arguments;
+use crate::cli::CLI;
+
 use wind_view::editor::Editor;
 
 use anyhow::Result;
@@ -27,13 +28,13 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(args: Arguments) -> Result<Application> {
+    pub fn new(cli: CLI) -> Result<Application> {
         let backend = CrosstermBackend::new(stdout());
         let terminal = Terminal::new(backend)?;
 
         Ok(Application {
             terminal,
-            editor: Editor::new(args.file),
+            editor: Editor::new(cli.file_path),
         })
     }
 
