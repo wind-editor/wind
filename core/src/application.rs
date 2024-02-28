@@ -240,7 +240,7 @@ impl Application {
                 self.editor.position.row -= 1;
 
                 self.editor.position.column =
-                    self.editor.document.row_length(self.editor.position.row);
+                    self.editor.document.row_length(self.editor.position.row).saturating_sub(1);
 
                 self.editor.position.history.column = self.editor.position.column;
 
@@ -262,7 +262,7 @@ impl Application {
 
         let terminal_height = self.terminal.size()?.height as usize;
 
-        if self.editor.position.column < current_row_length {
+        if self.editor.position.column < current_row_length.saturating_sub(1) {
             self.editor.position.column += offset;
 
             self.editor.position.history.column = self.editor.position.column;
@@ -271,9 +271,9 @@ impl Application {
                 self.editor.scroll_offset.column += offset;
             }
         } else {
-            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset
+            if self.editor.position.row >= self.editor.scroll_offset.row.saturating_add(terminal_height).saturating_sub(offset)
             {
-                if self.editor.scroll_offset.row + terminal_height < self.editor.document.rows.len()
+                if self.editor.scroll_offset.row.saturating_add(terminal_height) < self.editor.document.rows.len()
                 {
                     self.editor.scroll_offset.row += 1;
                 }
