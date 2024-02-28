@@ -301,38 +301,38 @@ impl Application {
     }
 
     async fn draw_document(&mut self) -> Result<()> {
-        let start = self.editor.scroll_offset.column;
-        let end = self
+        let terminal_width = self.terminal.size()?.width;
+        let terminal_height = self.terminal.size()?.height;
+
+        let line_start = self.editor.scroll_offset.column;
+
+        let line_end = self
             .editor
             .scroll_offset
             .column
             .saturating_add(self.terminal.size()?.width as usize);
 
-        let rows: Vec<Line> = self
+        let lines: Vec<Line> = self
             .editor
             .document
             .rows
             .iter()
             .enumerate()
             .filter(|(i, _)| i >= &self.editor.scroll_offset.row)
-            .map(|(_, r)| Line::from(Span::from(r.render(start, end))))
+            .map(|(_, r)| Line::from(Span::from(r.render(line_start, line_end))))
             .collect();
 
-        let paragraph = Paragraph::new(rows);
+        let paragraph = Paragraph::new(lines);
         let block = Block::default();
-
-        let width = self.terminal.size()?.width;
-        let height = self.terminal.size()?.height;
 
         self.terminal.draw(|f| {
             f.render_widget(
                 paragraph.block(block),
                 Rect {
-                    width,
-                    height,
-
                     x: 0,
                     y: 0,
+                    width: terminal_width,
+                    height: terminal_height,
                 },
             );
 
