@@ -80,7 +80,9 @@ impl Application {
                     self.terminal.resize(Rect::new(0, 0, width, height))?;
                     true
                 }
+
                 Event::Key(key_event) => self.handle_key_event(key_event).await?,
+
                 _ => true,
             },
             _ => true,
@@ -124,6 +126,26 @@ impl Application {
                     Ok(true)
                 }
 
+                KeyCode::Home => {
+                    self.move_left(self.editor.position.column).await?;
+
+                    Ok(true)
+                }
+
+                KeyCode::End => {
+                    let current_row_length =
+                        self.editor.document.row_length(self.editor.position.row);
+
+                    self.move_right(
+                        current_row_length
+                            .saturating_sub(self.editor.position.column)
+                            .saturating_sub(1),
+                    )
+                    .await?;
+
+                    Ok(true)
+                }
+
                 _ => Ok(true),
             }
         }
@@ -140,9 +162,11 @@ impl Application {
 
             self.editor.position.row -= offset;
 
-            self.editor.position.column = std::cmp::min(
-                self.editor.position.history.column,
-                self.editor.document.row_length(self.editor.position.row),
+            self.editor.position.column = self.editor.position.history.column.min(
+                self.editor
+                    .document
+                    .row_length(self.editor.position.row)
+                    .saturating_sub(1),
             );
 
             if self.editor.position.column < self.editor.scroll_offset.column {
@@ -163,15 +187,18 @@ impl Application {
         let terminal_height = self.terminal.size()?.height as usize;
 
         if self.editor.position.row.saturating_add(offset) < self.editor.document.rows.len() {
-            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset {
+            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset
+            {
                 self.editor.scroll_offset.row += offset;
             }
 
             self.editor.position.row += offset;
 
-            self.editor.position.column = std::cmp::min(
-                self.editor.position.history.column,
-                self.editor.document.row_length(self.editor.position.row),
+            self.editor.position.column = self.editor.position.history.column.min(
+                self.editor
+                    .document
+                    .row_length(self.editor.position.row)
+                    .saturating_sub(1),
             );
 
             if self.editor.position.column < self.editor.scroll_offset.column {
