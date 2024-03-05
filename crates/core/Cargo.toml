@@ -5,7 +5,7 @@ edition = "2021"
 
 [[bin]]
 name = "wind"
-path = "./src/main.rs"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
@@ -15,4 +15,4 @@ futures-util = { workspace = true }
 ratatui = { workspace = true }
 tokio = { workspace = true }
 
-wind_view = { path = "../crates/view" }
+wind_view = { path = "../view" }
