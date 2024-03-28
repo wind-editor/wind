@@ -1,4 +1,4 @@
-use wind_core::application::Application;
+use wind_core::app::Application;
 use wind_core::cli::CLI;
 
 use anyhow::Result;
