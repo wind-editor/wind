@@ -1,6 +1,8 @@
 use crate::document::*;
 use crate::position::*;
 
+use anyhow::Result;
+
 use std::path::PathBuf;
 
 #[derive(Default)]
@@ -11,11 +13,11 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(file: Option<PathBuf>) -> Editor {
-        Editor {
-            document: Document::open(file).unwrap_or_default(),
+    pub fn new(file_path: Option<PathBuf>) -> Result<Editor> {
+        Ok(Editor {
+            document: Document::open(file_path)?,
             position: Position::default(),
             scroll_offset: Position::default(),
-        }
+        })
     }
 }

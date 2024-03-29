@@ -31,6 +31,7 @@ pub struct App {
     terminal: Terminal,
     editor: Editor,
     message: Option<AppMessage>,
+    layout: Layout,
 }
 
 impl App {
@@ -40,8 +41,11 @@ impl App {
 
         Ok(App {
             terminal,
-            editor: Editor::new(cli.file_path),
+            editor: Editor::new(cli.file_path)?,
             message: None,
+            layout: Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(97), Constraint::Percentage(3)]),
         })
     }
 
@@ -147,7 +151,7 @@ impl App {
     }
 
     async fn move_up(&mut self, offset: usize) -> Result<()> {
-        let terminal_width = self.terminal.size()?.width as usize;
+        let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.row > 0 {
             if self.editor.position.row <= self.editor.scroll_offset.row {
@@ -167,9 +171,10 @@ impl App {
             if self.editor.position.column < self.editor.scroll_offset.column {
                 self.editor.scroll_offset.column = 0;
             } else if self.editor.position.column
-                >= self.editor.scroll_offset.column + terminal_width
+                >= self.editor.scroll_offset.column + text_area.width as usize
             {
-                self.editor.scroll_offset.column = self.editor.position.column - terminal_width + 1;
+                self.editor.scroll_offset.column =
+                    self.editor.position.column - text_area.width as usize + 1;
             }
         }
 
@@ -177,12 +182,11 @@ impl App {
     }
 
     async fn move_down(&mut self, offset: usize) -> Result<()> {
-        let terminal_width = self.terminal.size()?.width as usize;
-
-        let terminal_height = self.terminal.size()?.height as usize;
+        let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.row.saturating_add(offset) < self.editor.document.rows.len() {
-            if self.editor.position.row >= self.editor.scroll_offset.row + terminal_height - offset
+            if self.editor.position.row
+                >= self.editor.scroll_offset.row + text_area.height as usize - offset
             {
                 self.editor.scroll_offset.row += offset;
             }
@@ -199,9 +203,10 @@ impl App {
             if self.editor.position.column < self.editor.scroll_offset.column {
                 self.editor.scroll_offset.column = 0;
             } else if self.editor.position.column
-                >= self.editor.scroll_offset.column + terminal_width
+                >= self.editor.scroll_offset.column + text_area.width as usize
             {
-                self.editor.scroll_offset.column = self.editor.position.column - terminal_width + 1;
+                self.editor.scroll_offset.column =
+                    self.editor.position.column - text_area.width as usize + 1;
             }
         }
 
@@ -209,7 +214,7 @@ impl App {
     }
 
     async fn move_left(&mut self, offset: usize) -> Result<()> {
-        let terminal_width = self.terminal.size()?.width as usize;
+        let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.column > 0 {
             self.editor.position.column = self.editor.position.column.saturating_sub(offset);
@@ -221,10 +226,9 @@ impl App {
                     .editor
                     .position
                     .column
-                    .saturating_sub(terminal_width)
-                    .max(0);
+                    .saturating_sub(text_area.width as usize);
             }
-        } else {
+        } else if offset != 0 {
             if self.editor.position.row == self.editor.scroll_offset.row {
                 if self.editor.scroll_offset.row > 0 {
                     self.editor.scroll_offset.row -= 1;
@@ -242,10 +246,11 @@ impl App {
 
                 self.editor.position.history.column = self.editor.position.column;
 
-                if self.editor.position.column >= self.editor.scroll_offset.column + terminal_width
+                if self.editor.position.column
+                    >= self.editor.scroll_offset.column + text_area.width as usize
                 {
                     self.editor.scroll_offset.column =
-                        self.editor.position.column + terminal_width - offset;
+                        self.editor.position.column + text_area.width as usize - offset;
                 }
             }
         }
@@ -256,32 +261,32 @@ impl App {
     async fn move_right(&mut self, offset: usize) -> Result<()> {
         let current_row_length = self.editor.document.row_length(self.editor.position.row);
 
-        let terminal_width = self.terminal.size()?.width as usize;
-
-        let terminal_height = self.terminal.size()?.height as usize;
+        let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.column < current_row_length.saturating_sub(1) {
             self.editor.position.column += offset;
 
             self.editor.position.history.column = self.editor.position.column;
 
-            if self.editor.position.column >= self.editor.scroll_offset.column + terminal_width {
+            if self.editor.position.column
+                >= self.editor.scroll_offset.column + text_area.width as usize
+            {
                 self.editor.scroll_offset.column += offset;
             }
-        } else {
+        } else if offset != 0 {
             if self.editor.position.row
                 >= self
                     .editor
                     .scroll_offset
                     .row
-                    .saturating_add(terminal_height)
+                    .saturating_add(text_area.height as usize)
                     .saturating_sub(offset)
             {
                 if self
                     .editor
                     .scroll_offset
                     .row
-                    .saturating_add(terminal_height)
+                    .saturating_add(text_area.height as usize)
                     < self.editor.document.rows.len()
                 {
                     self.editor.scroll_offset.row += 1;
@@ -305,8 +310,7 @@ impl App {
     }
 
     async fn draw(&mut self) -> Result<()> {
-        let terminal_width = self.terminal.size()?.width;
-        let terminal_height = self.terminal.size()?.height;
+        let areas = self.layout.split(self.terminal.size()?);
 
         let line_start = self.editor.scroll_offset.column;
 
@@ -314,7 +318,7 @@ impl App {
             .editor
             .scroll_offset
             .column
-            .saturating_add(self.terminal.size()?.width as usize);
+            .saturating_add(areas[0].width as usize);
 
         let lines: Vec<Line> = self
             .editor
@@ -326,23 +330,50 @@ impl App {
             .map(|(_, r)| Line::from(Span::from(r.render(line_start, line_end))))
             .collect();
 
-        let paragraph = Paragraph::new(lines);
-        let block = Block::default();
+        let lines_paragraph = Paragraph::new(lines);
+
+        let text_area_block = Block::default().bg(Color::from_u32(0x00151515));
+
+        let file_name = match self.editor.document.path.as_ref() {
+            Some(file_path) => file_path
+                .file_name()
+                .unwrap_or(file_path.as_os_str())
+                .to_string_lossy()
+                .to_string(),
+
+            None => "[No Name]".to_owned(),
+        };
+
+        let file_name_paragraph = Paragraph::new(file_name);
+
+        let status_bar_area = Block::default().bg(Color::from_u32(0x00181818));
 
         self.terminal.draw(|f| {
             f.render_widget(
-                paragraph.block(block),
+                lines_paragraph.block(text_area_block),
                 Rect {
-                    x: 0,
-                    y: 0,
-                    width: terminal_width,
-                    height: terminal_height,
+                    x: areas[0].x,
+                    y: areas[0].y,
+                    width: areas[0].width,
+                    height: areas[0].height,
                 },
             );
 
             f.set_cursor(
                 (self.editor.position.column - self.editor.scroll_offset.column) as u16,
                 (self.editor.position.row - self.editor.scroll_offset.row) as u16,
+            );
+
+            f.render_widget(
+                file_name_paragraph
+                    .block(status_bar_area)
+                    .alignment(Alignment::Center),
+                Rect {
+                    x: areas[1].x,
+                    y: areas[1].y,
+                    width: areas[1].width,
+                    height: areas[1].height,
+                },
             );
         })?;
 

@@ -30,30 +30,25 @@ impl Row {
 
 #[derive(Default)]
 pub struct Document {
-    pub name: Option<PathBuf>,
+    pub path: Option<PathBuf>,
     pub rows: Vec<Row>,
 }
 
 impl Document {
-    pub fn open(file_name: Option<PathBuf>) -> Result<Document> {
+    pub fn open(file_path: Option<PathBuf>) -> Result<Document> {
         let mut rows = Vec::new();
 
-        if file_name.is_none() || file_name.as_ref().is_some_and(|f| !f.exists()) {
-            return Ok(Document {
-                name: file_name,
-                rows,
-            });
-        }
+        if file_path.as_ref().is_some_and(|f| f.exists()) {
+            let file = File::open(file_path.as_ref().unwrap())?;
+            let reader = BufReader::new(file);
 
-        let file = File::open(file_name.as_ref().unwrap())?;
-        let reader = BufReader::new(file);
-
-        for line in reader.lines() {
-            rows.push(Row::from(line?));
+            for line in reader.lines() {
+                rows.push(Row::from(line?));
+            }
         }
 
         Ok(Document {
-            name: file_name,
+            path: file_path,
             rows,
         })
     }
