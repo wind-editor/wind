@@ -1,4 +1,4 @@
-use wind_core::app::Application;
+use wind_core::app::App;
 use wind_core::cli::CLI;
 
 use anyhow::Result;
@@ -8,9 +8,7 @@ use clap::Parser;
 async fn main() -> Result<()> {
     let cli = CLI::parse();
 
-    let mut app = Application::new(cli)?;
+    let mut app = App::new(cli)?;
 
-    app.run().await?;
-
-    Ok(())
+    app.run().await
 }

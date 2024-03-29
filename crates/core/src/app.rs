@@ -22,19 +22,26 @@ type TerminalBackend = CrosstermBackend<std::io::Stdout>;
 
 type Terminal = ratatui::terminal::Terminal<TerminalBackend>;
 
-pub struct Application {
-    terminal: Terminal,
-    editor: Editor,
+#[derive(Clone, Copy)]
+pub enum AppMessage {
+    Exit,
 }
 
-impl Application {
-    pub fn new(cli: CLI) -> Result<Application> {
+pub struct App {
+    terminal: Terminal,
+    editor: Editor,
+    message: Option<AppMessage>,
+}
+
+impl App {
+    pub fn new(cli: CLI) -> Result<App> {
         let backend = CrosstermBackend::new(stdout());
         let terminal = Terminal::new(backend)?;
 
-        Ok(Application {
+        Ok(App {
             terminal,
             editor: Editor::new(cli.file_path),
+            message: None,
         })
     }
 
@@ -52,16 +59,19 @@ impl Application {
     {
         loop {
             self.draw().await?;
+            self.handle_event(event_stream).await?;
 
-            if !self.handle_event(event_stream).await? {
-                break;
+            if let Some(message) = self.message {
+                match message {
+                    AppMessage::Exit => break,
+                };
             }
         }
 
         Ok(())
     }
 
-    async fn handle_event<S>(&mut self, event_stream: &mut S) -> Result<bool>
+    async fn handle_event<S>(&mut self, event_stream: &mut S) -> Result<()>
     where
         S: Stream<Item = std::io::Result<Event>> + Unpin,
     {
@@ -74,64 +84,50 @@ impl Application {
         }
     }
 
-    async fn handle_terminal_event(&mut self, event: std::io::Result<Event>) -> Result<bool> {
-        Ok(match event {
+    async fn handle_terminal_event(&mut self, event: std::io::Result<Event>) -> Result<()> {
+        match event {
             Ok(event) => match event {
                 Event::Resize(width, height) => {
                     self.terminal.resize(Rect::new(0, 0, width, height))?;
-                    true
+
+                    Ok(())
                 }
 
-                Event::Key(key_event) => self.handle_key_event(key_event).await?,
+                Event::Key(key_event) => self.handle_key_event(key_event).await,
 
-                _ => true,
+                _ => Ok(()),
             },
-            _ => true,
-        })
+
+            _ => Ok(()),
+        }
     }
 
-    async fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<bool> {
+    async fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         if key_event.modifiers.contains(KeyModifiers::CONTROL) {
             match key_event.code {
                 KeyCode::Char(ch) => match ch {
-                    'q' => Ok(false),
+                    'q' => {
+                        self.message = Some(AppMessage::Exit);
 
-                    _ => Ok(true),
+                        Ok(())
+                    }
+
+                    _ => Ok(()),
                 },
 
-                _ => Ok(true),
+                _ => Ok(()),
             }
         } else {
             match key_event.code {
-                KeyCode::Up => {
-                    self.move_up(1).await?;
+                KeyCode::Up => self.move_up(1).await,
 
-                    Ok(true)
-                }
+                KeyCode::Down => self.move_down(1).await,
 
-                KeyCode::Down => {
-                    self.move_down(1).await?;
+                KeyCode::Left => self.move_left(1).await,
 
-                    Ok(true)
-                }
+                KeyCode::Right => self.move_right(1).await,
 
-                KeyCode::Left => {
-                    self.move_left(1).await?;
-
-                    Ok(true)
-                }
-
-                KeyCode::Right => {
-                    self.move_right(1).await?;
-
-                    Ok(true)
-                }
-
-                KeyCode::Home => {
-                    self.move_left(self.editor.position.column).await?;
-
-                    Ok(true)
-                }
+                KeyCode::Home => self.move_left(self.editor.position.column).await,
 
                 KeyCode::End => {
                     let current_row_length =
@@ -142,12 +138,10 @@ impl Application {
                             .saturating_sub(self.editor.position.column)
                             .saturating_sub(1),
                     )
-                    .await?;
-
-                    Ok(true)
+                    .await
                 }
 
-                _ => Ok(true),
+                _ => Ok(()),
             }
         }
     }
@@ -240,8 +234,11 @@ impl Application {
             if self.editor.position.row > 0 {
                 self.editor.position.row -= 1;
 
-                self.editor.position.column =
-                    self.editor.document.row_length(self.editor.position.row).saturating_sub(1);
+                self.editor.position.column = self
+                    .editor
+                    .document
+                    .row_length(self.editor.position.row)
+                    .saturating_sub(1);
 
                 self.editor.position.history.column = self.editor.position.column;
 
@@ -272,9 +269,20 @@ impl Application {
                 self.editor.scroll_offset.column += offset;
             }
         } else {
-            if self.editor.position.row >= self.editor.scroll_offset.row.saturating_add(terminal_height).saturating_sub(offset)
+            if self.editor.position.row
+                >= self
+                    .editor
+                    .scroll_offset
+                    .row
+                    .saturating_add(terminal_height)
+                    .saturating_sub(offset)
             {
-                if self.editor.scroll_offset.row.saturating_add(terminal_height) < self.editor.document.rows.len()
+                if self
+                    .editor
+                    .scroll_offset
+                    .row
+                    .saturating_add(terminal_height)
+                    < self.editor.document.rows.len()
                 {
                     self.editor.scroll_offset.row += 1;
                 }
@@ -297,10 +305,6 @@ impl Application {
     }
 
     async fn draw(&mut self) -> Result<()> {
-        self.draw_document().await
-    }
-
-    async fn draw_document(&mut self) -> Result<()> {
         let terminal_width = self.terminal.size()?.width;
         let terminal_height = self.terminal.size()?.height;
 
