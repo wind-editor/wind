@@ -346,6 +346,14 @@ impl App {
 
         let file_name_paragraph = Paragraph::new(file_name);
 
+        let position = format!(
+            "{}:{}",
+            self.editor.position.row + 1,
+            self.editor.position.column + 1
+        );
+
+        let position_paragraph = Paragraph::new(position);
+
         let status_bar_area = Block::default().bg(Color::from_u32(0x00181818));
 
         self.terminal.draw(|f| {
@@ -366,8 +374,20 @@ impl App {
 
             f.render_widget(
                 file_name_paragraph
-                    .block(status_bar_area)
+                    .block(status_bar_area.clone())
                     .alignment(Alignment::Center),
+                Rect {
+                    x: areas[1].x,
+                    y: areas[1].y,
+                    width: areas[1].width,
+                    height: areas[1].height,
+                },
+            );
+
+            f.render_widget(
+                position_paragraph
+                    .block(status_bar_area)
+                    .alignment(Alignment::Right),
                 Rect {
                     x: areas[1].x,
                     y: areas[1].y,
