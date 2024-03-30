@@ -108,45 +108,40 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
-        if key_event.modifiers.contains(KeyModifiers::CONTROL) {
-            match key_event.code {
-                KeyCode::Char(ch) => match ch {
-                    'q' => {
+        match key_event.code {
+            KeyCode::Char(ch) => match ch {
+                'q' => {
+                    if key_event.modifiers.contains(KeyModifiers::CONTROL) {
                         self.message = Some(AppMessage::Exit);
-
-                        Ok(())
                     }
 
-                    _ => Ok(()),
-                },
-
-                _ => Ok(()),
-            }
-        } else {
-            match key_event.code {
-                KeyCode::Up => self.move_up(1),
-
-                KeyCode::Down => self.move_down(1),
-
-                KeyCode::Left => self.move_left(1),
-
-                KeyCode::Right => self.move_right(1),
-
-                KeyCode::Home => self.move_left(self.editor.position.column),
-
-                KeyCode::End => {
-                    let current_row_length =
-                        self.editor.document.row_length(self.editor.position.row);
-
-                    self.move_right(
-                        current_row_length
-                            .saturating_sub(self.editor.position.column)
-                            .saturating_sub(1),
-                    )
+                    Ok(())
                 }
 
                 _ => Ok(()),
+            },
+
+            KeyCode::Up => self.move_up(1),
+
+            KeyCode::Down => self.move_down(1),
+
+            KeyCode::Left => self.move_left(1),
+
+            KeyCode::Right => self.move_right(1),
+
+            KeyCode::Home => self.move_left(self.editor.position.column),
+
+            KeyCode::End => {
+                let current_row_length = self.editor.document.row_length(self.editor.position.row);
+
+                self.move_right(
+                    current_row_length
+                        .saturating_sub(self.editor.position.column)
+                        .saturating_sub(1),
+                )
             }
+
+            _ => Ok(()),
         }
     }
 
@@ -368,8 +363,16 @@ impl App {
             );
 
             f.set_cursor(
-                (self.editor.position.column.saturating_sub(self.editor.scroll_offset.column)) as u16,
-                (self.editor.position.row.saturating_sub(self.editor.scroll_offset.row)) as u16,
+                (self
+                    .editor
+                    .position
+                    .column
+                    .saturating_sub(self.editor.scroll_offset.column)) as u16,
+                (self
+                    .editor
+                    .position
+                    .row
+                    .saturating_sub(self.editor.scroll_offset.row)) as u16,
             );
 
             f.render_widget(
