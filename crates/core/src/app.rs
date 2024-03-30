@@ -368,8 +368,8 @@ impl App {
             );
 
             f.set_cursor(
-                (self.editor.position.column - self.editor.scroll_offset.column) as u16,
-                (self.editor.position.row - self.editor.scroll_offset.row) as u16,
+                (self.editor.position.column.saturating_sub(self.editor.scroll_offset.column)) as u16,
+                (self.editor.position.row.saturating_sub(self.editor.scroll_offset.row)) as u16,
             );
 
             f.render_widget(
