@@ -108,6 +108,8 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
+        let text_area = self.layout.split(self.terminal.size()?)[0];
+
         match key_event.code {
             KeyCode::Char(ch) => match ch {
                 'q' => {
@@ -121,20 +123,23 @@ impl App {
                 _ => Ok(()),
             },
 
-            KeyCode::Up => self.move_up(1),
+            KeyCode::Up => self.editor.move_up(text_area, 1),
 
-            KeyCode::Down => self.move_down(1),
+            KeyCode::Down => self.editor.move_down(text_area, 1),
 
-            KeyCode::Left => self.move_left(1),
+            KeyCode::Left => self.editor.move_left(text_area, 1),
 
-            KeyCode::Right => self.move_right(1),
+            KeyCode::Right => self.editor.move_right(text_area, 1),
 
-            KeyCode::Home => self.move_left(self.editor.position.column),
+            KeyCode::Home => self
+                .editor
+                .move_left(text_area, self.editor.position.column),
 
             KeyCode::End => {
                 let current_row_length = self.editor.document.row_length(self.editor.position.row);
 
-                self.move_right(
+                self.editor.move_right(
+                    text_area,
                     current_row_length
                         .saturating_sub(self.editor.position.column)
                         .saturating_sub(1),
@@ -143,165 +148,6 @@ impl App {
 
             _ => Ok(()),
         }
-    }
-
-    fn move_up(&mut self, offset: usize) -> Result<()> {
-        let text_area = self.layout.split(self.terminal.size()?)[0];
-
-        if self.editor.position.row > 0 {
-            if self.editor.position.row <= self.editor.scroll_offset.row {
-                self.editor.scroll_offset.row =
-                    self.editor.scroll_offset.row.saturating_sub(offset);
-            }
-
-            self.editor.position.row -= offset;
-
-            self.editor.position.column = self.editor.position.history.column.min(
-                self.editor
-                    .document
-                    .row_length(self.editor.position.row)
-                    .saturating_sub(1),
-            );
-
-            if self.editor.position.column < self.editor.scroll_offset.column {
-                self.editor.scroll_offset.column = 0;
-            } else if self.editor.position.column
-                >= self.editor.scroll_offset.column + text_area.width as usize
-            {
-                self.editor.scroll_offset.column =
-                    self.editor.position.column - text_area.width as usize + 1;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn move_down(&mut self, offset: usize) -> Result<()> {
-        let text_area = self.layout.split(self.terminal.size()?)[0];
-
-        if self.editor.position.row.saturating_add(offset) < self.editor.document.rows.len() {
-            if self.editor.position.row
-                >= self.editor.scroll_offset.row + text_area.height as usize - offset
-            {
-                self.editor.scroll_offset.row += offset;
-            }
-
-            self.editor.position.row += offset;
-
-            self.editor.position.column = self.editor.position.history.column.min(
-                self.editor
-                    .document
-                    .row_length(self.editor.position.row)
-                    .saturating_sub(1),
-            );
-
-            if self.editor.position.column < self.editor.scroll_offset.column {
-                self.editor.scroll_offset.column = 0;
-            } else if self.editor.position.column
-                >= self.editor.scroll_offset.column + text_area.width as usize
-            {
-                self.editor.scroll_offset.column =
-                    self.editor.position.column - text_area.width as usize + 1;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn move_left(&mut self, offset: usize) -> Result<()> {
-        let text_area = self.layout.split(self.terminal.size()?)[0];
-
-        if self.editor.position.column > 0 {
-            self.editor.position.column = self.editor.position.column.saturating_sub(offset);
-
-            self.editor.position.history.column = self.editor.position.column;
-
-            if self.editor.position.column < self.editor.scroll_offset.column {
-                self.editor.scroll_offset.column = self
-                    .editor
-                    .position
-                    .column
-                    .saturating_sub(text_area.width as usize);
-            }
-        } else if offset != 0 {
-            if self.editor.position.row == self.editor.scroll_offset.row {
-                if self.editor.scroll_offset.row > 0 {
-                    self.editor.scroll_offset.row -= 1;
-                }
-            }
-
-            if self.editor.position.row > 0 {
-                self.editor.position.row -= 1;
-
-                self.editor.position.column = self
-                    .editor
-                    .document
-                    .row_length(self.editor.position.row)
-                    .saturating_sub(1);
-
-                self.editor.position.history.column = self.editor.position.column;
-
-                if self.editor.position.column
-                    >= self.editor.scroll_offset.column + text_area.width as usize
-                {
-                    self.editor.scroll_offset.column =
-                        self.editor.position.column + text_area.width as usize - offset;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn move_right(&mut self, offset: usize) -> Result<()> {
-        let current_row_length = self.editor.document.row_length(self.editor.position.row);
-
-        let text_area = self.layout.split(self.terminal.size()?)[0];
-
-        if self.editor.position.column < current_row_length.saturating_sub(1) {
-            self.editor.position.column += offset;
-
-            self.editor.position.history.column = self.editor.position.column;
-
-            if self.editor.position.column
-                >= self.editor.scroll_offset.column + text_area.width as usize
-            {
-                self.editor.scroll_offset.column += offset;
-            }
-        } else if offset != 0 {
-            if self.editor.position.row
-                >= self
-                    .editor
-                    .scroll_offset
-                    .row
-                    .saturating_add(text_area.height as usize)
-                    .saturating_sub(offset)
-            {
-                if self
-                    .editor
-                    .scroll_offset
-                    .row
-                    .saturating_add(text_area.height as usize)
-                    < self.editor.document.rows.len()
-                {
-                    self.editor.scroll_offset.row += 1;
-                }
-            }
-
-            if self.editor.position.row.saturating_add(1)
-                <= self.editor.document.rows.len().saturating_sub(1)
-            {
-                self.editor.position.row += 1;
-
-                self.editor.position.column = 0;
-
-                self.editor.position.history.column = 0;
-
-                self.editor.scroll_offset.column = 0;
-            }
-        }
-
-        Ok(())
     }
 
     fn draw(&mut self) -> Result<()> {
