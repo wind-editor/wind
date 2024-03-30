@@ -62,7 +62,8 @@ impl App {
         S: Stream<Item = std::io::Result<Event>> + Unpin,
     {
         loop {
-            self.draw().await?;
+            self.draw()?;
+
             self.handle_event(event_stream).await?;
 
             if let Some(message) = self.message {
@@ -82,13 +83,13 @@ impl App {
         loop {
             tokio::select! {
                 Some(event) = event_stream.next() => {
-                    return self.handle_terminal_event(event).await;
+                    return self.handle_terminal_event(event);
                 }
             }
         }
     }
 
-    async fn handle_terminal_event(&mut self, event: std::io::Result<Event>) -> Result<()> {
+    fn handle_terminal_event(&mut self, event: std::io::Result<Event>) -> Result<()> {
         match event {
             Ok(event) => match event {
                 Event::Resize(width, height) => {
@@ -97,7 +98,7 @@ impl App {
                     Ok(())
                 }
 
-                Event::Key(key_event) => self.handle_key_event(key_event).await,
+                Event::Key(key_event) => self.handle_key_event(key_event),
 
                 _ => Ok(()),
             },
@@ -106,7 +107,7 @@ impl App {
         }
     }
 
-    async fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
+    fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         if key_event.modifiers.contains(KeyModifiers::CONTROL) {
             match key_event.code {
                 KeyCode::Char(ch) => match ch {
@@ -123,15 +124,15 @@ impl App {
             }
         } else {
             match key_event.code {
-                KeyCode::Up => self.move_up(1).await,
+                KeyCode::Up => self.move_up(1),
 
-                KeyCode::Down => self.move_down(1).await,
+                KeyCode::Down => self.move_down(1),
 
-                KeyCode::Left => self.move_left(1).await,
+                KeyCode::Left => self.move_left(1),
 
-                KeyCode::Right => self.move_right(1).await,
+                KeyCode::Right => self.move_right(1),
 
-                KeyCode::Home => self.move_left(self.editor.position.column).await,
+                KeyCode::Home => self.move_left(self.editor.position.column),
 
                 KeyCode::End => {
                     let current_row_length =
@@ -142,7 +143,6 @@ impl App {
                             .saturating_sub(self.editor.position.column)
                             .saturating_sub(1),
                     )
-                    .await
                 }
 
                 _ => Ok(()),
@@ -150,7 +150,7 @@ impl App {
         }
     }
 
-    async fn move_up(&mut self, offset: usize) -> Result<()> {
+    fn move_up(&mut self, offset: usize) -> Result<()> {
         let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.row > 0 {
@@ -181,7 +181,7 @@ impl App {
         Ok(())
     }
 
-    async fn move_down(&mut self, offset: usize) -> Result<()> {
+    fn move_down(&mut self, offset: usize) -> Result<()> {
         let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.row.saturating_add(offset) < self.editor.document.rows.len() {
@@ -213,7 +213,7 @@ impl App {
         Ok(())
     }
 
-    async fn move_left(&mut self, offset: usize) -> Result<()> {
+    fn move_left(&mut self, offset: usize) -> Result<()> {
         let text_area = self.layout.split(self.terminal.size()?)[0];
 
         if self.editor.position.column > 0 {
@@ -258,7 +258,7 @@ impl App {
         Ok(())
     }
 
-    async fn move_right(&mut self, offset: usize) -> Result<()> {
+    fn move_right(&mut self, offset: usize) -> Result<()> {
         let current_row_length = self.editor.document.row_length(self.editor.position.row);
 
         let text_area = self.layout.split(self.terminal.size()?)[0];
@@ -309,7 +309,7 @@ impl App {
         Ok(())
     }
 
-    async fn draw(&mut self) -> Result<()> {
+    fn draw(&mut self) -> Result<()> {
         let areas = self.layout.split(self.terminal.size()?);
 
         let line_start = self.editor.scroll_offset.column;
