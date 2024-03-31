@@ -31,11 +31,11 @@ impl Editor {
 
             self.position.row -= offset;
 
-            self.position.column = self.position.history.column.min(
-                self.document
-                    .row_len(self.position.row)
-                    .saturating_sub(1),
-            );
+            self.position.column = self
+                .position
+                .history
+                .column
+                .min(self.document.row_len(self.position.row).saturating_sub(1));
 
             if self.position.column < self.scroll_offset.column {
                 self.scroll_offset.column = 0;
@@ -56,11 +56,11 @@ impl Editor {
 
             self.position.row += offset;
 
-            self.position.column = self.position.history.column.min(
-                self.document
-                    .row_len(self.position.row)
-                    .saturating_sub(1),
-            );
+            self.position.column = self
+                .position
+                .history
+                .column
+                .min(self.document.row_len(self.position.row).saturating_sub(1));
 
             if self.position.column < self.scroll_offset.column {
                 self.scroll_offset.column = 0;
@@ -93,10 +93,7 @@ impl Editor {
             if self.position.row > 0 {
                 self.position.row -= 1;
 
-                self.position.column = self
-                    .document
-                    .row_len(self.position.row)
-                    .saturating_sub(1);
+                self.position.column = self.document.row_len(self.position.row).saturating_sub(1);
 
                 self.position.history.column = self.position.column;
 

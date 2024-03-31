@@ -34,10 +34,14 @@ pub struct App {
 
 impl App {
     pub fn new(cli: CLI) -> Result<App> {
+        let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+
+        let painter = Painter::new(terminal.size()?);
+
         Ok(App {
-            terminal: Terminal::new(CrosstermBackend::new(stdout()))?,
+            terminal,
             editor: Editor::new(cli.file_path)?,
-            painter: Painter::default(),
+            painter,
             message: AppMessage::None,
         })
     }
@@ -53,15 +57,15 @@ impl App {
     }
 
     fn start_session(&mut self) -> Result<()> {
-        execute!(self.terminal.backend_mut(), EnterAlternateScreen)?;
         enable_raw_mode()?;
+        execute!(self.terminal.backend_mut(), EnterAlternateScreen)?;
 
         Ok(())
     }
 
     fn end_session(&mut self) -> Result<()> {
-        disable_raw_mode()?;
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
+        disable_raw_mode()?;
 
         Ok(())
     }
@@ -87,7 +91,11 @@ impl App {
 
     fn handle_terminal_event(&mut self, event: Event) -> Result<()> {
         match event {
-            Event::Resize(width, height) => self.terminal.resize(Rect::new(0, 0, width, height))?,
+            Event::Resize(width, height) => {
+                self.terminal.resize(Rect::new(0, 0, width, height))?;
+
+                self.painter.recompute_areas(self.terminal.size()?);
+            }
 
             Event::Key(key_event) => self.handle_key_event(key_event)?,
 
@@ -98,7 +106,7 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
-        let text_area = self.painter.get_text_area(self.terminal.size()?);
+        let text_area = self.painter.get_text_area();
 
         match key_event.code {
             KeyCode::Char(ch) => match ch {

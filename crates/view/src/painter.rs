@@ -12,6 +12,7 @@ use ratatui::Terminal;
 pub struct Palette {
     pub text_area_fg: Color,
     pub text_area_bg: Color,
+    pub line_numbers_fg: Color,
     pub status_bar_fg: Color,
     pub status_bar_bg: Color,
 }
@@ -21,6 +22,7 @@ impl Default for Palette {
         Self {
             text_area_fg: Color::from_u32(0x008F93A2),
             text_area_bg: Color::from_u32(0x000F111A),
+            line_numbers_fg: Color::from_u32(0x008F93A2),
             status_bar_fg: Color::from_u32(0x008F93A2),
             status_bar_bg: Color::from_u32(0x00090B10),
         }
@@ -28,32 +30,52 @@ impl Default for Palette {
 }
 
 pub struct Painter {
-    layout: Layout,
+    areas: [Rect; 3],
     palette: Palette,
 }
 
-impl Default for Painter {
-    fn default() -> Self {
-        Self {
-            layout: Layout::new(
-                Direction::Vertical,
-                [Constraint::Percentage(95), Constraint::Percentage(5)],
-            ),
-
-            palette: Palette::default(),
-        }
-    }
-}
-
 impl Painter {
-    #[inline]
-    pub fn get_text_area(&self, boundaries: Rect) -> Rect {
-        self.layout.split(boundaries)[0]
+    pub fn new(boundaries: Rect) -> Painter {
+        let mut painter = Painter {
+            areas: [Rect::default(); 3],
+            palette: Palette::default(),
+        };
+
+        painter.recompute_areas(boundaries);
+
+        painter
+    }
+
+    pub fn recompute_areas(&mut self, boundaries: Rect) {
+        let main_layout = Layout::new(
+            Direction::Vertical,
+            [Constraint::Percentage(95), Constraint::Percentage(5)],
+        );
+
+        let main_areas = main_layout.split(boundaries);
+
+        let text_area = Layout::new(
+            Direction::Horizontal,
+            [Constraint::Max(4), Constraint::Min(1)],
+        )
+        .split(main_areas[0]);
+
+        self.areas = [text_area[0], text_area[1], main_areas[1]];
     }
 
     #[inline]
-    pub fn get_status_bar_area(&self, boundaries: Rect) -> Rect {
-        self.layout.split(boundaries)[1]
+    pub fn get_line_numbers_area(&self) -> Rect {
+        self.areas[0]
+    }
+
+    #[inline]
+    pub fn get_text_area(&self) -> Rect {
+        self.areas[1]
+    }
+
+    #[inline]
+    pub fn get_status_bar_area(&self) -> Rect {
+        self.areas[2]
     }
 
     pub fn paint<T: TerminalBackend>(
@@ -61,7 +83,7 @@ impl Painter {
         terminal: &mut Terminal<T>,
         editor: &Editor,
     ) -> Result<()> {
-        let text_area = self.get_text_area(terminal.size()?);
+        let text_area = self.get_text_area();
 
         let text_block = Block::default()
             .fg(self.palette.text_area_fg)
@@ -79,12 +101,38 @@ impl Painter {
             .rows
             .iter()
             .skip(editor.scroll_offset.row)
-            .map(|r| Line::from(Span::from(r.render(line_start, line_end))))
+            .enumerate()
+            .map_while(|(i, r)| {
+                if i > text_area.height as usize {
+                    None
+                } else {
+                    Some(Line::from(Span::from(r.render(line_start, line_end))))
+                }
+            })
+            .collect();
+
+        let line_numbers_area = self.get_line_numbers_area();
+
+        let line_numbers_block = Block::default()
+            .fg(self.palette.line_numbers_fg)
+            .bg(self.palette.text_area_bg);
+
+        let line_numbers: Vec<usize> = lines
+            .iter()
+            .enumerate()
+            .map(|(i, _)| i + editor.scroll_offset.row + 1)
             .collect();
 
         let lines_paragraph = Paragraph::new(lines);
 
-        let status_bar_area = self.get_status_bar_area(terminal.size()?);
+        let line_numbers_paragraph = Paragraph::new(
+            line_numbers
+                .iter()
+                .map(|n| Line::from(Span::from(format!("{}\n", n))))
+                .collect::<Vec<Line>>(),
+        );
+
+        let status_bar_area = self.get_status_bar_area();
 
         let status_bar_block = Block::default()
             .fg(self.palette.status_bar_fg)
@@ -107,14 +155,20 @@ impl Painter {
         let position_paragraph = Paragraph::new(position);
 
         terminal.draw(|f| {
-            f.render_widget(lines_paragraph.block(text_block), text_area);
-
             f.set_cursor(
-                editor
+                (editor
                     .position
                     .column
-                    .saturating_sub(editor.scroll_offset.column) as u16,
+                    .saturating_sub(editor.scroll_offset.column) as u16)
+                    .saturating_add(line_numbers_area.width),
                 editor.position.row.saturating_sub(editor.scroll_offset.row) as u16,
+            );
+
+            f.render_widget(lines_paragraph.block(text_block), text_area);
+
+            f.render_widget(
+                line_numbers_paragraph.block(line_numbers_block).centered(),
+                line_numbers_area,
             );
 
             f.render_widget(
