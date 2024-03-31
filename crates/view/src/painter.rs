@@ -65,16 +65,19 @@ impl Painter {
             .fg(self.palette.text_area_fg)
             .bg(self.palette.text_area_bg);
 
-        let lines: Vec<Line<'_>> = editor
+        let line_start = editor.scroll_offset.column;
+
+        let line_end = editor
+            .scroll_offset
+            .column
+            .saturating_add(text_area.width as usize);
+
+        let lines: Vec<Line> = editor
             .document
             .rows
             .iter()
             .skip(editor.scroll_offset.row)
-            .map(|r| {
-                Line::from(Span::from(
-                    r.render(editor.position.column, text_area.width as usize),
-                ))
-            })
+            .map(|r| Line::from(Span::from(r.render(line_start, line_end))))
             .collect();
 
         let lines_paragraph = Paragraph::new(lines);
