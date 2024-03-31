@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::editor::Editor;
 
 use anyhow::Result;
@@ -117,13 +119,35 @@ impl Painter {
             .fg(self.palette.line_numbers_fg)
             .bg(self.palette.text_area_bg);
 
-        let line_numbers: Vec<usize> = lines
-            .iter()
-            .enumerate()
-            .map(|(i, _)| i + editor.scroll_offset.row + 1)
-            .collect();
+        let lines_paragraph = Paragraph::new(lines.clone());
 
-        let lines_paragraph = Paragraph::new(lines);
+        let mut line_numbers = Vec::new();
+
+        if env::var("WIND_RELATIVE_LINE_NUMBERS").is_ok() {
+            let mut i = lines.iter().enumerate().position(|(i, _)| i == editor.position.row - editor.scroll_offset.row).unwrap();
+
+            let mut increment = false;
+
+            while i <= lines.len() {
+                if i == 0 {
+                    line_numbers.push(editor.position.row + 1);
+
+                    increment = true;
+                } else {
+                    line_numbers.push(i);
+                }
+
+                if increment {
+                    i += 1;
+                } else {
+                    i -= 1;
+                }
+            }
+        } else {
+            for i in 0..lines.len() {
+                line_numbers.push(i + editor.scroll_offset.row + 1);
+            }
+        }
 
         let line_numbers_paragraph = Paragraph::new(
             line_numbers
