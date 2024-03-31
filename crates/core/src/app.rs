@@ -45,7 +45,7 @@ impl App {
     pub async fn run(&mut self) -> Result<()> {
         self.start_session()?;
 
-        self.main_loop(&mut EventStream::new()).await?;
+        self.main_loop().await?;
 
         self.end_session()?;
 
@@ -66,7 +66,9 @@ impl App {
         Ok(())
     }
 
-    async fn main_loop(&mut self, event_stream: &mut EventStream) -> Result<()> {
+    async fn main_loop(&mut self) -> Result<()> {
+        let mut event_stream = EventStream::new();
+
         loop {
             self.painter.paint(&mut self.terminal, &self.editor)?;
 
