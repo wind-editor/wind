@@ -43,16 +43,30 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        self.start_terminal()?;
+        self.start_session()?;
 
-        self.event_loop(&mut EventStream::new()).await?;
+        self.main_loop(&mut EventStream::new()).await?;
 
-        self.end_terminal()?;
+        self.end_session()?;
 
         Ok(())
     }
 
-    async fn event_loop(&mut self, event_stream: &mut EventStream) -> Result<()> {
+    fn start_session(&mut self) -> Result<()> {
+        execute!(self.terminal.backend_mut(), EnterAlternateScreen)?;
+        enable_raw_mode()?;
+
+        Ok(())
+    }
+
+    fn end_session(&mut self) -> Result<()> {
+        disable_raw_mode()?;
+        execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
+
+        Ok(())
+    }
+
+    async fn main_loop(&mut self, event_stream: &mut EventStream) -> Result<()> {
         loop {
             self.painter.paint(&mut self.terminal, &self.editor)?;
 
@@ -120,20 +134,6 @@ impl App {
 
             _ => (),
         }
-
-        Ok(())
-    }
-
-    fn start_terminal(&mut self) -> Result<()> {
-        execute!(self.terminal.backend_mut(), EnterAlternateScreen)?;
-        enable_raw_mode()?;
-
-        Ok(())
-    }
-
-    fn end_terminal(&mut self) -> Result<()> {
-        disable_raw_mode()?;
-        execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
 
         Ok(())
     }
