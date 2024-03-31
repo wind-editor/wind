@@ -46,10 +46,12 @@ impl Default for Painter {
 }
 
 impl Painter {
+    #[inline]
     pub fn get_text_area(&self, boundaries: Rect) -> Rect {
         self.layout.split(boundaries)[0]
     }
 
+    #[inline]
     pub fn get_status_bar_area(&self, boundaries: Rect) -> Rect {
         self.layout.split(boundaries)[1]
     }

@@ -33,7 +33,7 @@ impl Editor {
 
             self.position.column = self.position.history.column.min(
                 self.document
-                    .row_length(self.position.row)
+                    .row_len(self.position.row)
                     .saturating_sub(1),
             );
 
@@ -58,7 +58,7 @@ impl Editor {
 
             self.position.column = self.position.history.column.min(
                 self.document
-                    .row_length(self.position.row)
+                    .row_len(self.position.row)
                     .saturating_sub(1),
             );
 
@@ -95,7 +95,7 @@ impl Editor {
 
                 self.position.column = self
                     .document
-                    .row_length(self.position.row)
+                    .row_len(self.position.row)
                     .saturating_sub(1);
 
                 self.position.history.column = self.position.column;
@@ -111,7 +111,7 @@ impl Editor {
     }
 
     pub fn move_right(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
-        let current_row_length = self.document.row_length(self.position.row);
+        let current_row_length = self.document.row_len(self.position.row);
 
         if self.position.column < current_row_length.saturating_sub(1) {
             self.position.column += offset;
