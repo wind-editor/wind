@@ -1,6 +1,7 @@
 use crate::cli::CLI;
 
 use wind_view::editor::Editor;
+use wind_view::painter::Painter;
 
 use anyhow::Result;
 
@@ -13,14 +14,11 @@ use crossterm::terminal::{
 use futures_util::Stream;
 use futures_util::StreamExt;
 
-use ratatui::prelude::*;
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::Rect;
+use ratatui::Terminal;
 
-use std::io::stdout;
-
-type TerminalBackend = CrosstermBackend<std::io::Stdout>;
-
-type Terminal = ratatui::terminal::Terminal<TerminalBackend>;
+use std::io::{stdout, Stdout};
 
 #[derive(Clone, Copy)]
 pub enum AppMessage {
@@ -28,24 +26,19 @@ pub enum AppMessage {
 }
 
 pub struct App {
-    terminal: Terminal,
+    terminal: Terminal<CrosstermBackend<Stdout>>,
     editor: Editor,
+    painter: Painter,
     message: Option<AppMessage>,
-    layout: Layout,
 }
 
 impl App {
     pub fn new(cli: CLI) -> Result<App> {
-        let backend = CrosstermBackend::new(stdout());
-        let terminal = Terminal::new(backend)?;
-
         Ok(App {
-            terminal,
+            terminal: Terminal::new(CrosstermBackend::new(stdout()))?,
             editor: Editor::new(cli.file_path)?,
+            painter: Painter::default(),
             message: None,
-            layout: Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(97), Constraint::Percentage(3)]),
         })
     }
 
@@ -62,7 +55,7 @@ impl App {
         S: Stream<Item = std::io::Result<Event>> + Unpin,
     {
         loop {
-            self.draw()?;
+            self.painter.paint(&mut self.terminal, &self.editor)?;
 
             self.handle_event(event_stream).await?;
 
@@ -108,7 +101,7 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
-        let text_area = self.layout.split(self.terminal.size()?)[0];
+        let text_area = self.painter.get_text_area(self.terminal.size()?);
 
         match key_event.code {
             KeyCode::Char(ch) => match ch {
@@ -148,105 +141,6 @@ impl App {
 
             _ => Ok(()),
         }
-    }
-
-    fn draw(&mut self) -> Result<()> {
-        let areas = self.layout.split(self.terminal.size()?);
-
-        let line_start = self.editor.scroll_offset.column;
-
-        let line_end = self
-            .editor
-            .scroll_offset
-            .column
-            .saturating_add(areas[0].width as usize);
-
-        let lines: Vec<Line> = self
-            .editor
-            .document
-            .rows
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| i >= &self.editor.scroll_offset.row)
-            .map(|(_, r)| Line::from(Span::from(r.render(line_start, line_end))))
-            .collect();
-
-        let lines_paragraph = Paragraph::new(lines);
-
-        let text_area_block = Block::default().bg(Color::from_u32(0x00151515));
-
-        let file_name = match self.editor.document.path.as_ref() {
-            Some(file_path) => file_path
-                .file_name()
-                .unwrap_or(file_path.as_os_str())
-                .to_string_lossy()
-                .to_string(),
-
-            None => "[No Name]".to_owned(),
-        };
-
-        let file_name_paragraph = Paragraph::new(file_name);
-
-        let position = format!(
-            "{}:{}",
-            self.editor.position.row + 1,
-            self.editor.position.column + 1
-        );
-
-        let position_paragraph = Paragraph::new(position);
-
-        let status_bar_area = Block::default().bg(Color::from_u32(0x00181818));
-
-        self.terminal.draw(|f| {
-            f.render_widget(
-                lines_paragraph.block(text_area_block),
-                Rect {
-                    x: areas[0].x,
-                    y: areas[0].y,
-                    width: areas[0].width,
-                    height: areas[0].height,
-                },
-            );
-
-            f.set_cursor(
-                (self
-                    .editor
-                    .position
-                    .column
-                    .saturating_sub(self.editor.scroll_offset.column)) as u16,
-                (self
-                    .editor
-                    .position
-                    .row
-                    .saturating_sub(self.editor.scroll_offset.row)) as u16,
-            );
-
-            f.render_widget(
-                file_name_paragraph
-                    .block(status_bar_area.clone())
-                    .alignment(Alignment::Center),
-                Rect {
-                    x: areas[1].x,
-                    y: areas[1].y,
-                    width: areas[1].width,
-                    height: areas[1].height,
-                },
-            );
-
-            f.render_widget(
-                position_paragraph
-                    .block(status_bar_area)
-                    .alignment(Alignment::Right),
-                Rect {
-                    x: areas[1].x,
-                    y: areas[1].y,
-                    width: areas[1].width,
-                    height: areas[1].height,
-                },
-            );
-        })?;
-
-        Ok(())
     }
 
     fn start_terminal(&mut self) -> Result<()> {
