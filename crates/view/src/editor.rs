@@ -86,10 +86,8 @@ impl Editor {
                     .saturating_sub(boundaries.width as usize);
             }
         } else if offset != 0 {
-            if self.position.row == self.scroll_offset.row {
-                if self.scroll_offset.row > 0 {
-                    self.scroll_offset.row -= 1;
-                }
+            if self.position.row == self.scroll_offset.row && self.scroll_offset.row > 0 {
+                self.scroll_offset.row -= 1;
             }
 
             if self.position.row > 0 {
@@ -130,15 +128,13 @@ impl Editor {
                     .row
                     .saturating_add(boundaries.height as usize)
                     .saturating_sub(offset)
-            {
-                if self
+                && self
                     .scroll_offset
                     .row
                     .saturating_add(boundaries.height as usize)
                     < self.document.rows.len()
-                {
-                    self.scroll_offset.row += 1;
-                }
+            {
+                self.scroll_offset.row += 1;
             }
 
             if self.position.row.saturating_add(1) <= self.document.rows.len().saturating_sub(1) {
