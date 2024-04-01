@@ -31,7 +31,11 @@ impl Row {
         let end = end.min(self.content.len());
         let start = start.min(end);
 
-        self.content.get(start..end).unwrap_or_default().to_string()
+        self.content
+            .graphemes(true)
+            .skip(start)
+            .take(end - start)
+            .collect()
     }
 
     #[inline]
