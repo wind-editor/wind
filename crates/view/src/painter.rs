@@ -58,7 +58,7 @@ impl Painter {
 
         let text_area = Layout::new(
             Direction::Horizontal,
-            [Constraint::Max(4), Constraint::Min(1)],
+            [Constraint::Max(5), Constraint::Min(1)],
         )
         .split(main_areas[0]);
 
@@ -184,7 +184,7 @@ impl Painter {
                     .position
                     .column
                     .saturating_sub(editor.scroll_offset.column) as u16)
-                    .saturating_add(line_numbers_area.width),
+                    .saturating_add(text_area.x),
                 editor.position.row.saturating_sub(editor.scroll_offset.row) as u16,
             );
 
