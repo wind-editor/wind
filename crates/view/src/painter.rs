@@ -124,7 +124,7 @@ impl Painter {
         let mut line_numbers = Vec::new();
 
         if env::var("WIND_RELATIVE_LINE_NUMBERS").is_ok() {
-            let mut i = lines
+            let mut n = lines
                 .iter()
                 .enumerate()
                 .position(|(i, _)| i == editor.position.row - editor.scroll_offset.row)
@@ -132,19 +132,19 @@ impl Painter {
 
             let mut increment = false;
 
-            while i <= lines.len() {
-                if i == 0 {
+            for _ in 0..lines.len() {
+                if n == 0 {
                     line_numbers.push(editor.position.row + 1);
 
                     increment = true;
                 } else {
-                    line_numbers.push(i);
+                    line_numbers.push(n);
                 }
 
                 if increment {
-                    i += 1;
+                    n += 1;
                 } else {
-                    i -= 1;
+                    n -= 1;
                 }
             }
         } else {
