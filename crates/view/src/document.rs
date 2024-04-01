@@ -1,5 +1,7 @@
 use anyhow::Result;
 
+use unicode_segmentation::UnicodeSegmentation;
+
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -7,11 +9,19 @@ use std::path::PathBuf;
 #[derive(Default)]
 pub struct Row {
     pub content: String,
+    len: usize,
 }
 
 impl From<String> for Row {
     fn from(value: String) -> Self {
-        Self { content: value }
+        let mut row = Self {
+            content: value,
+            len: 0,
+        };
+
+        row.update_len();
+
+        row
     }
 }
 
@@ -26,12 +36,17 @@ impl Row {
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.content.len()
+        self.len
+    }
+
+    #[inline]
+    pub fn update_len(&mut self) {
+        self.len = self.content.graphemes(true).count();
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.content.is_empty()
+        self.len == 0
     }
 }
 

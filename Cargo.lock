@@ -834,6 +834,7 @@ dependencies = [
  "anyhow",
  "crossterm",
  "ratatui",
+ "unicode-segmentation",
 ]
 
 [[package]]
