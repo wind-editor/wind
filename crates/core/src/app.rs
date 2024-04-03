@@ -1,6 +1,6 @@
 use crate::cli::CLI;
 
-use wind_view::editor::Editor;
+use wind_view::editor::{Editor, EditorMode};
 use wind_view::painter::Painter;
 
 use anyhow::Result;
@@ -109,16 +109,6 @@ impl App {
         let text_area = self.painter.get_text_area();
 
         match key_event.code {
-            KeyCode::Char(ch) => match ch {
-                'q' => {
-                    if key_event.modifiers.contains(KeyModifiers::CONTROL) {
-                        self.message = AppMessage::Exit;
-                    }
-                }
-
-                _ => (),
-            },
-
             KeyCode::Up => self.editor.move_up(text_area, 1)?,
 
             KeyCode::Down => self.editor.move_down(text_area, 1)?,
@@ -136,14 +126,48 @@ impl App {
 
                 self.editor.move_right(
                     text_area,
-                    current_row_length
-                        .saturating_sub(self.editor.position.column)
-                        .saturating_sub(1),
+                    current_row_length.saturating_sub(self.editor.position.column),
                 )?;
             }
 
-            _ => (),
-        }
+            _ => {
+                match self.editor.mode {
+                    EditorMode::Normal => match key_event.code {
+                        KeyCode::Char('q') => {
+                            if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                                self.message = AppMessage::Exit;
+                            }
+                        }
+
+                        KeyCode::Char('i') => {
+                            self.editor.mode = EditorMode::Insert;
+                        }
+
+                        _ => (),
+                    },
+
+                    EditorMode::Insert => match key_event.code {
+                        KeyCode::Char(ch) => {
+                            self.editor.document.insert(self.editor.position, ch);
+
+                            self.editor.move_right(text_area, 1)?;
+                        }
+
+                        KeyCode::Enter => {
+                            self.editor.document.insert(self.editor.position, '\n');
+
+                            self.editor.move_right(text_area, 1)?;
+                        }
+
+                        KeyCode::Esc => {
+                            self.editor.mode = EditorMode::Normal;
+                        }
+
+                        _ => (),
+                    },
+                };
+            }
+        };
 
         Ok(())
     }

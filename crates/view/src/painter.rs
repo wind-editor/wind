@@ -32,14 +32,14 @@ impl Default for Palette {
 }
 
 pub struct Painter {
-    areas: [Rect; 3],
+    areas: [Rect; 5],
     palette: Palette,
 }
 
 impl Painter {
     pub fn new(boundaries: Rect) -> Painter {
         let mut painter = Painter {
-            areas: [Rect::default(); 3],
+            areas: [Rect::default(); 5],
             palette: Palette::default(),
         };
 
@@ -62,7 +62,20 @@ impl Painter {
         )
         .split(main_areas[0]);
 
-        self.areas = [text_area[0], text_area[1], main_areas[1]];
+        let status_bar_area = Layout::new(
+            Direction::Horizontal,
+            [Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)],
+        )
+        .flex(Flex::SpaceBetween)
+        .split(main_areas[1]);
+
+        self.areas = [
+            text_area[0],
+            text_area[1],
+            status_bar_area[0],
+            status_bar_area[1],
+            status_bar_area[2],
+        ];
     }
 
     #[inline]
@@ -76,8 +89,8 @@ impl Painter {
     }
 
     #[inline]
-    pub fn get_status_bar_area(&self) -> Rect {
-        self.areas[2]
+    pub fn get_status_bar_area(&self) -> [Rect; 3] {
+        [self.areas[2], self.areas[3], self.areas[4]]
     }
 
     pub fn paint<T: TerminalBackend>(
@@ -176,7 +189,15 @@ impl Painter {
             None => "[No Name]".to_owned(),
         };
 
+        let file_name = if editor.document.modified {
+            file_name + " [+]"
+        } else {
+            file_name
+        };
+
         let file_name_paragraph = Paragraph::new(file_name);
+
+        let editor_mode_paragraph = Paragraph::new(editor.mode.to_string());
 
         let position = format!("{}:{}", editor.position.row + 1, editor.position.column + 1);
 
@@ -200,16 +221,17 @@ impl Painter {
             );
 
             f.render_widget(
-                file_name_paragraph
-                    .block(status_bar_block.clone())
-                    .centered(),
-                status_bar_area,
+                status_bar_block,
+                status_bar_area[0]
+                    .union(status_bar_area[1])
+                    .union(status_bar_area[2]),
             );
 
-            f.render_widget(
-                position_paragraph.block(status_bar_block).right_aligned(),
-                status_bar_area,
-            );
+            f.render_widget(editor_mode_paragraph.centered(), status_bar_area[0]);
+
+            f.render_widget(file_name_paragraph.centered(), status_bar_area[1]);
+
+            f.render_widget(position_paragraph.centered(), status_bar_area[2]);
         })?;
 
         Ok(())

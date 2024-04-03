@@ -7,19 +7,39 @@ use ratatui::layout::Rect;
 
 use std::path::PathBuf;
 
+pub enum EditorMode {
+    Normal,
+    Insert,
+}
+
+impl Default for EditorMode {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
+impl ToString for EditorMode {
+    fn to_string(&self) -> String {
+        match self {
+            EditorMode::Normal => "normal".to_owned(),
+            EditorMode::Insert => "insert".to_owned(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Editor {
     pub document: Document,
     pub position: Position,
     pub scroll_offset: Position,
+    pub mode: EditorMode,
 }
 
 impl Editor {
     pub fn new(file_path: Option<PathBuf>) -> Result<Editor> {
         Ok(Editor {
             document: Document::open(file_path)?,
-            position: Position::default(),
-            scroll_offset: Position::default(),
+            ..Default::default()
         })
     }
 
@@ -35,7 +55,7 @@ impl Editor {
                 .position
                 .history
                 .column
-                .min(self.document.row_len(self.position.row).saturating_sub(1));
+                .min(self.document.row_len(self.position.row));
 
             if self.position.column < self.scroll_offset.column {
                 self.scroll_offset.column = 0;
@@ -60,7 +80,7 @@ impl Editor {
                 .position
                 .history
                 .column
-                .min(self.document.row_len(self.position.row).saturating_sub(1));
+                .min(self.document.row_len(self.position.row));
 
             if self.position.column < self.scroll_offset.column {
                 self.scroll_offset.column = 0;
@@ -93,7 +113,7 @@ impl Editor {
             if self.position.row > 0 {
                 self.position.row -= 1;
 
-                self.position.column = self.document.row_len(self.position.row).saturating_sub(1);
+                self.position.column = self.document.row_len(self.position.row);
 
                 self.position.history.column = self.position.column;
 
@@ -110,7 +130,7 @@ impl Editor {
     pub fn move_right(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
         let current_row_length = self.document.row_len(self.position.row);
 
-        if self.position.column < current_row_length.saturating_sub(1) {
+        if self.position.column < current_row_length {
             self.position.column += offset;
 
             self.position.history.column = self.position.column;

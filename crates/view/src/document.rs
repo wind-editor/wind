@@ -1,3 +1,5 @@
+use crate::position::Position;
+
 use anyhow::Result;
 
 use unicode_segmentation::UnicodeSegmentation;
@@ -26,7 +28,6 @@ impl From<String> for Row {
 }
 
 impl Row {
-    #[inline]
     pub fn render(&self, start: usize, end: usize) -> String {
         let end = end.min(self.content.len());
         let start = start.min(end);
@@ -36,6 +37,17 @@ impl Row {
             .skip(start)
             .take(end - start)
             .collect()
+    }
+
+    pub fn split(&mut self, at: usize) -> Row {
+        let start = self.content.graphemes(true).take(at).collect();
+
+        let mid: String = self.content.graphemes(true).skip(at).collect();
+
+        self.content = start;
+        self.update_len();
+
+        Row::from(mid)
     }
 
     #[inline]
@@ -58,6 +70,7 @@ impl Row {
 pub struct Document {
     pub path: Option<PathBuf>,
     pub rows: Vec<Row>,
+    pub modified: bool,
 }
 
 impl Document {
@@ -71,12 +84,41 @@ impl Document {
             for line in reader.lines() {
                 rows.push(Row::from(line?));
             }
+        } else {
+            rows.push(Row::default());
         }
 
         Ok(Document {
             path: file_path,
             rows,
+            modified: false,
         })
+    }
+
+    pub fn insert_new_line(&mut self, at: Position) {
+        self.modified = true;
+
+        let row = self.rows.get_mut(at.row).unwrap();
+
+        let new_row = row.split(at.column);
+
+        self.rows.insert(at.row.saturating_add(1), new_row);
+    }
+
+    pub fn insert(&mut self, at: Position, ch: char) {
+        self.modified = true;
+
+        if ch == '\n' {
+            self.insert_new_line(at);
+
+            return;
+        }
+
+        let row = self.rows.get_mut(at.row).unwrap();
+
+        row.content.insert(at.column, ch);
+
+        row.update_len();
     }
 
     #[inline]
