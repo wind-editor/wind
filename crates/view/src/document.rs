@@ -121,6 +121,33 @@ impl Document {
         row.update_len();
     }
 
+    pub fn delete(&mut self, at: Position) {
+        self.modified = true;
+
+        if at.column == self.row_len(at.row) && at.row < self.rows.len() - 1 {
+            let next_row = self.rows.remove(at.row.saturating_add(1));
+
+            let row = self.rows.get_mut(at.row).unwrap();
+
+
+            let result = row.content.graphemes(true).chain(next_row.content.graphemes(true)).collect();
+
+            row.content = result;
+
+            row.update_len();
+        } else {
+            let row = self.rows.get_mut(at.row).unwrap();
+
+            let mut result: String = row.content.graphemes(true).collect();
+
+            result.remove(at.column);
+
+            row.content = result;
+            
+            row.update_len();
+        }
+    }
+
     #[inline]
     pub fn row_len(&self, index: usize) -> usize {
         match self.rows.get(index) {

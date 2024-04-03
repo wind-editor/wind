@@ -159,6 +159,16 @@ impl App {
                             self.editor.move_right(text_area, 1)?;
                         }
 
+                        KeyCode::Delete => self.editor.document.delete(self.editor.position),
+
+                        KeyCode::Backspace => {
+                            if self.editor.position.row > 0 || self.editor.position.column > 0 {
+                                self.editor.move_left(text_area, 1)?;
+
+                                self.editor.document.delete(self.editor.position);
+                            }
+                        }
+
                         KeyCode::Esc => {
                             self.editor.mode = EditorMode::Normal;
                         }
