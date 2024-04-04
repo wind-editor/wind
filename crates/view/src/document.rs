@@ -5,7 +5,7 @@ use anyhow::Result;
 use unicode_segmentation::UnicodeSegmentation;
 
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 #[derive(Default)]
@@ -129,8 +129,11 @@ impl Document {
 
             let row = self.rows.get_mut(at.row).unwrap();
 
-
-            let result = row.content.graphemes(true).chain(next_row.content.graphemes(true)).collect();
+            let result = row
+                .content
+                .graphemes(true)
+                .chain(next_row.content.graphemes(true))
+                .collect();
 
             row.content = result;
 
@@ -143,9 +146,26 @@ impl Document {
             result.remove(at.column);
 
             row.content = result;
-            
+
             row.update_len();
         }
+    }
+
+    pub fn save(&mut self) -> Result<usize> {
+        let file = File::create(self.path.as_ref().unwrap())?;
+
+        let mut writer = BufWriter::new(file);
+
+        let mut n = 0;
+
+        for row in &self.rows {
+            n += writer.write(row.content.as_bytes())?;
+            n += writer.write(b"\n")?;
+        }
+
+        self.modified = false;
+
+        Ok(n)
     }
 
     #[inline]

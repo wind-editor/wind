@@ -25,7 +25,7 @@ impl ToString for EditorStatus {
         match self {
             EditorStatus::Message(msg) => msg.to_owned(),
             EditorStatus::Exit => "".to_owned(),
-            EditorStatus::None => "".to_owned()
+            EditorStatus::None => "".to_owned(),
         }
     }
 }
@@ -190,5 +190,32 @@ impl Editor {
         }
 
         Ok(())
+    }
+
+    pub fn save(&mut self) {
+        if self.document.path.is_none() {
+            // TODO: Let the user choose a name
+            self.status = EditorStatus::Message(
+                "Could not save the document: The document must have a name".to_owned(),
+            );
+
+            return;
+        }
+
+        match self.document.save() {
+            Ok(n) => {
+                self.status = EditorStatus::Message(format!(
+                    "'{}' saved, {}L {}B",
+                    self.document.path.as_ref().unwrap().display(),
+                    self.document.rows.len(),
+                    n
+                ));
+            }
+
+            Err(err) => {
+                self.status =
+                    EditorStatus::Message(format!("Could not save the document: {}", err));
+            }
+        }
     }
 }

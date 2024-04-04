@@ -51,7 +51,11 @@ impl Painter {
     pub fn recompute_areas(&mut self, boundaries: Rect) {
         let main_layout = Layout::new(
             Direction::Vertical,
-            [Constraint::Percentage(94), Constraint::Percentage(3), Constraint::Percentage(3)],
+            [
+                Constraint::Percentage(94),
+                Constraint::Percentage(3),
+                Constraint::Percentage(3),
+            ],
         );
 
         let main_areas = main_layout.split(boundaries);
@@ -200,7 +204,6 @@ impl Painter {
 
         let file_name_paragraph = Paragraph::new(file_name);
 
-
         let position = format!("{}:{}", editor.position.row + 1, editor.position.column + 1);
 
         let position_paragraph = Paragraph::new(position);
@@ -217,7 +220,7 @@ impl Painter {
                 editor.position.row.saturating_sub(editor.scroll_offset.row) as u16,
             );
 
-            f.render_widget(lines_paragraph.block(text_block), text_area);
+            f.render_widget(lines_paragraph.block(text_block.clone()), text_area);
 
             f.render_widget(
                 line_numbers_paragraph.block(line_numbers_block).centered(),
@@ -237,7 +240,10 @@ impl Painter {
 
             f.render_widget(position_paragraph.centered(), status_bar_area[2]);
 
-            f.render_widget(editor_status_paragraph.left_aligned(), status_bar_area[3]);
+            f.render_widget(
+                editor_status_paragraph.left_aligned().block(text_block),
+                status_bar_area[3],
+            );
         })?;
 
         Ok(())

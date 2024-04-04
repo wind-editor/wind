@@ -136,6 +136,12 @@ impl App {
                     self.editor.mode = EditorMode::Insert;
                 }
 
+                KeyCode::Char('s') => {
+                    if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                        self.editor.save();
+                    }
+                }
+
                 _ => (),
             },
 
