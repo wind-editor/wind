@@ -1,6 +1,6 @@
 use crate::cli::CLI;
 
-use wind_view::editor::{Editor, EditorMode};
+use wind_view::editor::{Editor, EditorMode, EditorStatus};
 use wind_view::painter::Painter;
 
 use anyhow::Result;
@@ -19,17 +19,10 @@ use ratatui::Terminal;
 
 use std::io::{stdout, Stdout};
 
-#[derive(Clone, Copy)]
-pub enum AppMessage {
-    Exit,
-    None,
-}
-
 pub struct App {
     terminal: Terminal<CrosstermBackend<Stdout>>,
     editor: Editor,
     painter: Painter,
-    message: AppMessage,
 }
 
 impl App {
@@ -42,7 +35,6 @@ impl App {
             terminal,
             editor: Editor::new(cli.file_path)?,
             painter,
-            message: AppMessage::None,
         })
     }
 
@@ -80,9 +72,8 @@ impl App {
                 self.handle_terminal_event(event)?;
             }
 
-            match self.message {
-                AppMessage::Exit => break,
-                AppMessage::None => (),
+            if self.editor.status == EditorStatus::Exit {
+                break;
             }
         }
 
@@ -130,53 +121,53 @@ impl App {
                 )?;
             }
 
-            _ => {
-                match self.editor.mode {
-                    EditorMode::Normal => match key_event.code {
-                        KeyCode::Char('q') => {
-                            if key_event.modifiers.contains(KeyModifiers::CONTROL) {
-                                self.message = AppMessage::Exit;
-                            }
-                        }
+            _ => (),
+        };
 
-                        KeyCode::Char('i') => {
-                            self.editor.mode = EditorMode::Insert;
-                        }
+        match self.editor.mode {
+            EditorMode::Normal => match key_event.code {
+                KeyCode::Char('q') => {
+                    if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                        self.editor.status = EditorStatus::Exit;
+                    }
+                }
 
-                        _ => (),
-                    },
+                KeyCode::Char('i') => {
+                    self.editor.mode = EditorMode::Insert;
+                }
 
-                    EditorMode::Insert => match key_event.code {
-                        KeyCode::Char(ch) => {
-                            self.editor.document.insert(self.editor.position, ch);
+                _ => (),
+            },
 
-                            self.editor.move_right(text_area, 1)?;
-                        }
+            EditorMode::Insert => match key_event.code {
+                KeyCode::Char(ch) => {
+                    self.editor.document.insert(self.editor.position, ch);
 
-                        KeyCode::Enter => {
-                            self.editor.document.insert(self.editor.position, '\n');
+                    self.editor.move_right(text_area, 1)?;
+                }
 
-                            self.editor.move_right(text_area, 1)?;
-                        }
+                KeyCode::Enter => {
+                    self.editor.document.insert(self.editor.position, '\n');
 
-                        KeyCode::Delete => self.editor.document.delete(self.editor.position),
+                    self.editor.move_right(text_area, 1)?;
+                }
 
-                        KeyCode::Backspace => {
-                            if self.editor.position.row > 0 || self.editor.position.column > 0 {
-                                self.editor.move_left(text_area, 1)?;
+                KeyCode::Delete => self.editor.document.delete(self.editor.position),
 
-                                self.editor.document.delete(self.editor.position);
-                            }
-                        }
+                KeyCode::Backspace => {
+                    if self.editor.position.row > 0 || self.editor.position.column > 0 {
+                        self.editor.move_left(text_area, 1)?;
 
-                        KeyCode::Esc => {
-                            self.editor.mode = EditorMode::Normal;
-                        }
+                        self.editor.document.delete(self.editor.position);
+                    }
+                }
 
-                        _ => (),
-                    },
-                };
-            }
+                KeyCode::Esc => {
+                    self.editor.mode = EditorMode::Normal;
+                }
+
+                _ => (),
+            },
         };
 
         Ok(())

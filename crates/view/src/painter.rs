@@ -32,14 +32,14 @@ impl Default for Palette {
 }
 
 pub struct Painter {
-    areas: [Rect; 5],
+    areas: [Rect; 6],
     palette: Palette,
 }
 
 impl Painter {
     pub fn new(boundaries: Rect) -> Painter {
         let mut painter = Painter {
-            areas: [Rect::default(); 5],
+            areas: [Rect::default(); 6],
             palette: Palette::default(),
         };
 
@@ -51,7 +51,7 @@ impl Painter {
     pub fn recompute_areas(&mut self, boundaries: Rect) {
         let main_layout = Layout::new(
             Direction::Vertical,
-            [Constraint::Percentage(95), Constraint::Percentage(5)],
+            [Constraint::Percentage(94), Constraint::Percentage(3), Constraint::Percentage(3)],
         );
 
         let main_areas = main_layout.split(boundaries);
@@ -75,6 +75,7 @@ impl Painter {
             status_bar_area[0],
             status_bar_area[1],
             status_bar_area[2],
+            main_areas[2],
         ];
     }
 
@@ -89,8 +90,8 @@ impl Painter {
     }
 
     #[inline]
-    pub fn get_status_bar_area(&self) -> [Rect; 3] {
-        [self.areas[2], self.areas[3], self.areas[4]]
+    pub fn get_status_bar_area(&self) -> [Rect; 4] {
+        [self.areas[2], self.areas[3], self.areas[4], self.areas[5]]
     }
 
     pub fn paint<T: TerminalBackend>(
@@ -179,6 +180,8 @@ impl Painter {
             .fg(self.palette.status_bar_fg)
             .bg(self.palette.status_bar_bg);
 
+        let editor_mode_paragraph = Paragraph::new(editor.mode.to_string());
+
         let file_name = match editor.document.path.as_ref() {
             Some(file_path) => file_path
                 .file_name()
@@ -197,11 +200,12 @@ impl Painter {
 
         let file_name_paragraph = Paragraph::new(file_name);
 
-        let editor_mode_paragraph = Paragraph::new(editor.mode.to_string());
 
         let position = format!("{}:{}", editor.position.row + 1, editor.position.column + 1);
 
         let position_paragraph = Paragraph::new(position);
+
+        let editor_status_paragraph = Paragraph::new(editor.status.to_string());
 
         terminal.draw(|f| {
             f.set_cursor(
@@ -232,6 +236,8 @@ impl Painter {
             f.render_widget(file_name_paragraph.centered(), status_bar_area[1]);
 
             f.render_widget(position_paragraph.centered(), status_bar_area[2]);
+
+            f.render_widget(editor_status_paragraph.left_aligned(), status_bar_area[3]);
         })?;
 
         Ok(())

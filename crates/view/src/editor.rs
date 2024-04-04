@@ -7,6 +7,29 @@ use ratatui::layout::Rect;
 
 use std::path::PathBuf;
 
+#[derive(PartialEq)]
+pub enum EditorStatus {
+    Message(String),
+    Exit,
+    None,
+}
+
+impl Default for EditorStatus {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl ToString for EditorStatus {
+    fn to_string(&self) -> String {
+        match self {
+            EditorStatus::Message(msg) => msg.to_owned(),
+            EditorStatus::Exit => "".to_owned(),
+            EditorStatus::None => "".to_owned()
+        }
+    }
+}
+
 pub enum EditorMode {
     Normal,
     Insert,
@@ -32,6 +55,7 @@ pub struct Editor {
     pub document: Document,
     pub position: Position,
     pub scroll_offset: Position,
+    pub status: EditorStatus,
     pub mode: EditorMode,
 }
 
