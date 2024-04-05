@@ -116,18 +116,18 @@ impl Painter {
             .column
             .saturating_add(text_area.width as usize);
 
-        let lines: Vec<Line> = editor
+        let lines: Vec<(Rect, Line)> = editor
             .document
             .rows
             .iter()
             .skip(editor.scroll_offset.row)
             .enumerate()
-            .map_while(|(i, r)| {
-                if i > text_area.height as usize {
-                    None
-                } else {
-                    Some(Line::from(Span::from(r.render(line_start, line_end))))
-                }
+            .filter(|(i, _)| *i < text_area.height as usize)
+            .map(|(i, r)| {
+                (
+                    Rect::new(text_area.x, text_area.y + i as u16, text_area.width, 1),
+                    Line::from(Span::from(r.render(line_start, line_end))),
+                )
             })
             .collect();
 
@@ -136,8 +136,6 @@ impl Painter {
         let line_numbers_block = Block::default()
             .fg(self.palette.line_numbers_fg)
             .bg(self.palette.text_area_bg);
-
-        let lines_paragraph = Paragraph::new(lines.clone());
 
         let mut line_numbers = Vec::new();
 
@@ -170,13 +168,6 @@ impl Painter {
                 line_numbers.push(i + editor.scroll_offset.row + 1);
             }
         }
-
-        let line_numbers_paragraph = Paragraph::new(
-            line_numbers
-                .iter()
-                .map(|n| Line::from(Span::from(format!("{}\n", n))))
-                .collect::<Vec<Line>>(),
-        );
 
         let status_bar_area = self.get_status_bar_area();
 
@@ -220,12 +211,21 @@ impl Painter {
                 editor.position.row.saturating_sub(editor.scroll_offset.row) as u16,
             );
 
-            f.render_widget(lines_paragraph.block(text_block.clone()), text_area);
+            for (line_rect, line) in lines {
+                f.render_widget(
+                    Paragraph::new(line_numbers.remove(0).to_string())
+                        .block(line_numbers_block.clone())
+                        .centered(),
+                    Rect::new(
+                        line_numbers_area.x,
+                        line_rect.y,
+                        line_numbers_area.width,
+                        line_numbers_area.height,
+                    ),
+                );
 
-            f.render_widget(
-                line_numbers_paragraph.block(line_numbers_block).centered(),
-                line_numbers_area,
-            );
+                f.render_widget(Paragraph::new(line).block(text_block.clone()), line_rect);
+            }
 
             f.render_widget(
                 status_bar_block,
