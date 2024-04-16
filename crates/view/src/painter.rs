@@ -213,9 +213,7 @@ impl Painter {
 
             for (line_rect, line) in lines {
                 f.render_widget(
-                    Paragraph::new(line_numbers.remove(0).to_string())
-                        .block(line_numbers_block.clone())
-                        .centered(),
+                    Paragraph::new(line_numbers.remove(0).to_string()).centered(),
                     Rect::new(
                         line_numbers_area.x,
                         line_rect.y,
@@ -224,8 +222,12 @@ impl Painter {
                     ),
                 );
 
-                f.render_widget(Paragraph::new(line).block(text_block.clone()), line_rect);
+                f.render_widget(Paragraph::new(line), line_rect);
             }
+
+            f.render_widget(text_block, text_area.union(status_bar_area[3]));
+
+            f.render_widget(line_numbers_block, line_numbers_area);
 
             f.render_widget(
                 status_bar_block,
@@ -240,10 +242,7 @@ impl Painter {
 
             f.render_widget(position_paragraph.centered(), status_bar_area[2]);
 
-            f.render_widget(
-                editor_status_paragraph.left_aligned().block(text_block),
-                status_bar_area[3],
-            );
+            f.render_widget(editor_status_paragraph.left_aligned(), status_bar_area[3]);
         })?;
 
         Ok(())
