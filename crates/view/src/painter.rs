@@ -185,13 +185,7 @@ impl Painter {
                 .to_string(),
 
             None => "[No Name]".to_owned(),
-        };
-
-        let file_name = if editor.document.modified {
-            file_name + " [+]"
-        } else {
-            file_name
-        };
+        } + if editor.document.modified { " [+]" } else { "" };
 
         let file_name_paragraph = Paragraph::new(file_name);
 
