@@ -139,6 +139,16 @@ impl App {
                     self.editor.mode = EditorMode::Insert;
                 }
 
+                KeyCode::Char('a') => {
+                    let current_row_length = self.editor.document.row_len(self.editor.position.row);
+
+                    if self.editor.position.column <= current_row_length.saturating_sub(1) {
+                        self.editor.move_right(text_area_boundaries, 1)?;
+                    }
+
+                    self.editor.mode = EditorMode::Insert;
+                }
+
                 KeyCode::Char('o') => {
                     self.editor
                         .document
@@ -156,7 +166,8 @@ impl App {
                         .rows
                         .insert(self.editor.position.row, Row::default());
 
-                    self.editor.move_left(text_area_boundaries, self.editor.position.column)?;
+                    self.editor
+                        .move_left(text_area_boundaries, self.editor.position.column)?;
 
                     self.editor.mode = EditorMode::Insert;
                 }
