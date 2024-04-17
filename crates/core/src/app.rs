@@ -144,6 +144,14 @@ impl App {
                     }
                 }
 
+                KeyCode::Char('k') => self.editor.move_up(text_area_boundaries, 1)?,
+
+                KeyCode::Char('j') => self.editor.move_down(text_area_boundaries, 1)?,
+
+                KeyCode::Char('h') => self.editor.move_left(text_area_boundaries, 1)?,
+
+                KeyCode::Char('l') => self.editor.move_right(text_area_boundaries, 1)?,
+
                 _ => (),
             },
 
