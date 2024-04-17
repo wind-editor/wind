@@ -2,6 +2,7 @@ use crate::cli::CLI;
 use crate::painter::Painter;
 
 use wind_view::boundaries::Boundaries;
+use wind_view::document::Row;
 use wind_view::editor::{Editor, EditorMode, EditorStatus};
 
 use anyhow::Result;
@@ -135,6 +136,28 @@ impl App {
                 }
 
                 KeyCode::Char('i') => {
+                    self.editor.mode = EditorMode::Insert;
+                }
+
+                KeyCode::Char('o') => {
+                    self.editor
+                        .document
+                        .rows
+                        .insert(self.editor.position.row.saturating_add(1), Row::default());
+
+                    self.editor.move_down(text_area_boundaries, 1)?;
+
+                    self.editor.mode = EditorMode::Insert;
+                }
+
+                KeyCode::Char('O') => {
+                    self.editor
+                        .document
+                        .rows
+                        .insert(self.editor.position.row, Row::default());
+
+                    self.editor.move_left(text_area_boundaries, self.editor.position.column)?;
+
                     self.editor.mode = EditorMode::Insert;
                 }
 
