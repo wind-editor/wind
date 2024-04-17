@@ -1,9 +1,8 @@
+use crate::boundaries::Boundaries;
 use crate::document::*;
 use crate::position::*;
 
 use anyhow::Result;
-
-use ratatui::layout::Rect;
 
 use std::path::PathBuf;
 
@@ -67,7 +66,7 @@ impl Editor {
         })
     }
 
-    pub fn move_up(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
+    pub fn move_up(&mut self, boundaries: Boundaries, offset: usize) -> Result<()> {
         if self.position.row > 0 {
             if self.position.row <= self.scroll_offset.row {
                 self.scroll_offset.row = self.scroll_offset.row.saturating_sub(offset);
@@ -92,7 +91,7 @@ impl Editor {
         Ok(())
     }
 
-    pub fn move_down(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
+    pub fn move_down(&mut self, boundaries: Boundaries, offset: usize) -> Result<()> {
         if self.position.row.saturating_add(offset) < self.document.rows.len() {
             if self.position.row >= self.scroll_offset.row + boundaries.height as usize - offset {
                 self.scroll_offset.row += offset;
@@ -117,7 +116,7 @@ impl Editor {
         Ok(())
     }
 
-    pub fn move_left(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
+    pub fn move_left(&mut self, boundaries: Boundaries, offset: usize) -> Result<()> {
         if self.position.column > 0 {
             self.position.column = self.position.column.saturating_sub(offset);
 
@@ -151,7 +150,7 @@ impl Editor {
         Ok(())
     }
 
-    pub fn move_right(&mut self, boundaries: Rect, offset: usize) -> Result<()> {
+    pub fn move_right(&mut self, boundaries: Boundaries, offset: usize) -> Result<()> {
         let current_row_length = self.document.row_len(self.position.row);
 
         if self.position.column < current_row_length {

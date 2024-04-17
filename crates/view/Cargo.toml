@@ -5,6 +5,4 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-crossterm = { workspace = true }
-ratatui = { workspace = true }
 unicode-segmentation = { workspace = true }

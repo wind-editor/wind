@@ -1,7 +1,8 @@
 use crate::cli::CLI;
+use crate::painter::Painter;
 
+use wind_view::boundaries::Boundaries;
 use wind_view::editor::{Editor, EditorMode, EditorStatus};
-use wind_view::painter::Painter;
 
 use anyhow::Result;
 
@@ -98,25 +99,26 @@ impl App {
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         let text_area = self.painter.get_text_area();
+        let text_area_boundaries = Boundaries::new(text_area.width, text_area.height);
 
         match key_event.code {
-            KeyCode::Up => self.editor.move_up(text_area, 1)?,
+            KeyCode::Up => self.editor.move_up(text_area_boundaries, 1)?,
 
-            KeyCode::Down => self.editor.move_down(text_area, 1)?,
+            KeyCode::Down => self.editor.move_down(text_area_boundaries, 1)?,
 
-            KeyCode::Left => self.editor.move_left(text_area, 1)?,
+            KeyCode::Left => self.editor.move_left(text_area_boundaries, 1)?,
 
-            KeyCode::Right => self.editor.move_right(text_area, 1)?,
+            KeyCode::Right => self.editor.move_right(text_area_boundaries, 1)?,
 
             KeyCode::Home => self
                 .editor
-                .move_left(text_area, self.editor.position.column)?,
+                .move_left(text_area_boundaries, self.editor.position.column)?,
 
             KeyCode::End => {
                 let current_row_length = self.editor.document.row_len(self.editor.position.row);
 
                 self.editor.move_right(
-                    text_area,
+                    text_area_boundaries,
                     current_row_length.saturating_sub(self.editor.position.column),
                 )?;
             }
@@ -149,20 +151,20 @@ impl App {
                 KeyCode::Char(ch) => {
                     self.editor.document.insert(self.editor.position, ch);
 
-                    self.editor.move_right(text_area, 1)?;
+                    self.editor.move_right(text_area_boundaries, 1)?;
                 }
 
                 KeyCode::Enter => {
                     self.editor.document.insert(self.editor.position, '\n');
 
-                    self.editor.move_right(text_area, 1)?;
+                    self.editor.move_right(text_area_boundaries, 1)?;
                 }
 
                 KeyCode::Delete => self.editor.document.delete(self.editor.position),
 
                 KeyCode::Backspace => {
                     if self.editor.position.row > 0 || self.editor.position.column > 0 {
-                        self.editor.move_left(text_area, 1)?;
+                        self.editor.move_left(text_area_boundaries, 1)?;
 
                         self.editor.document.delete(self.editor.position);
                     }

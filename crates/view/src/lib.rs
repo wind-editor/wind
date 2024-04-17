@@ -1,4 +1,4 @@
 pub mod document;
 pub mod editor;
-pub mod painter;
+pub mod boundaries;
 mod position;

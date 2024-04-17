@@ -832,8 +832,6 @@ name = "wind_view"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "crossterm",
- "ratatui",
  "unicode-segmentation",
 ]
 

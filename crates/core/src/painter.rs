@@ -1,6 +1,4 @@
-use std::env;
-
-use crate::editor::Editor;
+use wind_view::editor::Editor;
 
 use anyhow::Result;
 
@@ -10,6 +8,8 @@ use ratatui::style::{Color, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::*;
 use ratatui::Terminal;
+
+use std::env;
 
 pub struct Palette {
     pub text_area_fg: Color,
