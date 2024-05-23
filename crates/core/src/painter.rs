@@ -184,7 +184,7 @@ impl Painter {
                 .to_string_lossy()
                 .to_string(),
 
-            None => "[No Name]".to_owned(),
+            None => "temp".to_owned(),
         } + if editor.document.modified { " [+]" } else { "" };
 
         let file_name_paragraph = Paragraph::new(file_name);

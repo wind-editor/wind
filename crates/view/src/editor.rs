@@ -193,12 +193,7 @@ impl Editor {
 
     pub fn save(&mut self) {
         if self.document.path.is_none() {
-            // TODO: Let the user choose a name
-            self.status = EditorStatus::Message(
-                "Could not save the document: The document must have a name".to_owned(),
-            );
-
-            return;
+            self.document.path = Some(PathBuf::from("temp"))
         }
 
         match self.document.save() {
