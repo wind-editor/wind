@@ -22,11 +22,11 @@ pub struct Palette {
 impl Default for Palette {
     fn default() -> Self {
         Self {
-            text_area_fg: Color::from_u32(0x008F93A2),
-            text_area_bg: Color::from_u32(0x000F111A),
-            line_numbers_fg: Color::from_u32(0x008F93A2),
-            status_bar_fg: Color::from_u32(0x008F93A2),
-            status_bar_bg: Color::from_u32(0x00090B10),
+            text_area_fg: Color::from_u32(0x00cdd6f4),
+            text_area_bg: Color::from_u32(0x0001e1e2e),
+            line_numbers_fg: Color::from_u32(0x0045475a),
+            status_bar_fg: Color::from_u32(0x00cdd6f4),
+            status_bar_bg: Color::from_u32(0x00181825),
         }
     }
 }
@@ -52,8 +52,8 @@ impl Painter {
         let main_layout = Layout::new(
             Direction::Vertical,
             [
-                Constraint::Percentage(94),
-                Constraint::Percentage(3),
+                Constraint::Percentage(95),
+                Constraint::Percentage(2),
                 Constraint::Percentage(3),
             ],
         );
