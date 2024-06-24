@@ -22,11 +22,11 @@ pub struct Palette {
 impl Default for Palette {
     fn default() -> Self {
         Self {
-            text_area_fg: Color::from_u32(0x00cdd6f4),
-            text_area_bg: Color::from_u32(0x0001e1e2e),
-            line_numbers_fg: Color::from_u32(0x0045475a),
-            status_bar_fg: Color::from_u32(0x00cdd6f4),
-            status_bar_bg: Color::from_u32(0x00181825),
+            text_area_fg: Color::White,
+            text_area_bg: Color::Reset,
+            line_numbers_fg: Color::White,
+            status_bar_fg: Color::Black,
+            status_bar_bg: Color::White,
         }
     }
 }
